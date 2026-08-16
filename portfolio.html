@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="fa" dir="ltr" class="museum-root">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#080605">
+  <meta name="description" content="موزه دیجیتال نمونه‌کارهای آرایش دائم لنا بحری؛ ابرو، لب، چشم و آموزش تخصصی PMU.">
+  <title>موزه نمونه‌کارها | لنا بحری</title>
+  <link rel="icon" href="assets/brand/logo-lb-optimized.png">
+  <link rel="stylesheet" href="style.css?v=20260813-6">
+  <link rel="stylesheet" href="museum.css?v=20260814-gallery-3">
+  <link rel="stylesheet" href="assistant-widget.css?v=20260813-10">
+</head>
+<body class="museum-page" dir="rtl">
+  <div class="noise" aria-hidden="true"></div>
+  <div class="cursor-glow" aria-hidden="true"></div>
+
+  <header class="site-header museum-header">
+    <a class="brand" href="index.html" aria-label="صفحه اصلی">
+      <span class="brand-mark brand-logo"><img src="assets/brand/logo-lb-optimized.png" alt=""></span>
+      <span class="brand-copy"><b>LENA BAHRI</b><small>PERMANENT MAKEUP</small></span>
+    </a>
+    <button class="menu-toggle" type="button" aria-label="باز کردن منو" aria-expanded="false"><span></span><span></span></button>
+    <nav class="main-nav" aria-label="منوی اصلی">
+      <a href="index.html">خانه</a>
+      <a href="portfolio.html" class="active">نمونه‌کارها</a>
+      <a href="about.html">تالار افتخارات</a>
+      <a href="index.html#services">خدمات</a>
+      <a href="index.html#booking">رزرو</a>
+    </nav>
+    <button class="motion-toggle" id="motionToggle" type="button" aria-pressed="false"><i></i> حرکت کمتر</button>
+  </header>
+
+  <main>
+    <section class="museum-hero">
+      <div class="museum-title reveal">
+        <p class="eyebrow"><span></span> THE DIGITAL MUSEUM <span></span></p>
+        <h1>موزه نمونه‌کارها</h1>
+        <p>هر قاب، روایت ظرافت و طراحی اختصاصی یک چهره است.</p>
+      </div>
+
+      <div class="gallery-stage" aria-label="گالری سه‌بعدی">
+        <button class="gallery-arrow prev" id="galleryPrev" type="button" aria-label="نمونه قبلی">›</button>
+        <div class="gallery-rail" id="galleryRail"></div>
+        <button class="gallery-arrow next" id="galleryNext" type="button" aria-label="نمونه بعدی">‹</button>
+        <div class="gallery-status">
+          <b id="galleryCurrent">01</b>
+          <i id="galleryProgress"></i>
+          <span id="galleryTotal">08</span>
+        </div>
+      </div>
+
+      <div class="gallery-dock" id="galleryFilters" aria-label="فیلتر نمونه‌کارها"></div>
+      <div class="museum-actions">
+        <a class="btn btn-primary magnetic" href="#archive">مشاهده همه نمونه‌کارها</a>
+        <a class="btn btn-text" href="index.html#booking">رزرو وقت <span>←</span></a>
+      </div>
+      <p class="drag-note">برای حرکت، گالری را بکشید یا از کلیدهای جهت استفاده کنید.</p>
+    </section>
+
+    <section class="archive-section" id="archive">
+      <div class="archive-head reveal">
+        <div>
+          <p class="eyebrow"><span></span> آرشیو کامل</p>
+          <h2>جزئیات، از نزدیک</h2>
+        </div>
+        <p>برای مشاهده تصاویر بیشتر و اطلاعات تکنیک اجرا، هر پروژه را انتخاب کنید. گالری برای اضافه‌شدن نمونه‌های جدید آماده است.</p>
+      </div>
+      <div class="archive-grid" id="archiveGrid"></div>
+      <div class="archive-more">
+        <button class="btn btn-outline" id="loadMore" type="button">نمایش بیشتر</button>
+      </div>
+    </section>
+  </main>
+
+  <div class="project-modal" id="projectModal" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="modalTitle">
+    <div class="modal-backdrop"></div>
+    <div class="modal-panel">
+      <button class="modal-close" type="button" aria-label="بستن">×</button>
+      <div class="modal-media" id="modalMedia">
+        <div class="modal-media-track" id="modalMediaTrack">
+          <div class="modal-shot"><img id="modalImageMain" src="" alt=""><span>نمای کلی</span></div>
+          <div class="modal-shot"><img id="modalImageDetail" src="" alt=""><span>نمای نزدیک</span></div>
+        </div>
+        <button class="modal-media-arrow prev" type="button" aria-label="تصویر قبلی">‹</button>
+        <button class="modal-media-arrow next" type="button" aria-label="تصویر بعدی">›</button>
+        <div class="modal-media-status" aria-live="polite"><b id="modalMediaCurrent">۱</b><i></i><span>۲</span></div>
+        <p class="modal-swipe-note">برای دیدن نمای قبل و بعد، تصویر را بکشید</p>
+      </div>
+      <div class="modal-copy">
+        <small id="modalCategory"></small>
+        <h2 id="modalTitle"></h2>
+        <p id="modalDescription"></p>
+        <div class="project-facts">
+          <div><span>تکنیک اجرا</span><b id="modalTechnique"></b></div>
+          <div><span>زمان تقریبی</span><b id="modalDuration"></b></div>
+        </div>
+        <a class="btn btn-primary" href="index.html#booking">درخواست مشاوره</a>
+      </div>
+    </div>
+  </div>
+
+  <footer class="site-footer compact-footer" id="site-footer">
+    <div class="footer-top">
+      <a class="brand footer-brand" href="index.html">
+        <span class="brand-mark brand-logo"><img src="assets/brand/logo-lb-optimized.png" alt=""></span>
+        <span class="brand-copy"><b>LENA BAHRI</b><small>BEAUTY CLINIC</small></span>
+      </a>
+      <p class="footer-rights">کلیه حقوق این وب‌سایت متعلق به سیده اسرا بحری (لنا بحری) می‌باشد.</p>
+      <div class="socials">
+        <a href="https://instagram.com/lenabahri_micro" target="_blank" rel="noopener">Instagram ↗</a>
+        <a href="https://wa.me/989178280812" target="_blank" rel="noopener">WhatsApp ↗</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© <span id="year"></span> Lena Bahri.</span>
+      <address>شیراز - معالی آباد - ابتدای بهاران - مجتمع اداری آرین</address>
+      <a href="about.html">ورود به تالار افتخارات ←</a>
+    </div>
+  </footer>
+
+  <script src="gallery-data.js"></script>
+  <script src="script.js?v=20260813-6"></script>
+  <script src="museum.js?v=20260814-gallery-2"></script>
+  <script src="assistant-config.js?v=20260813-1"></script>
+  <script src="assistant-widget.js?v=20260814-video-3"></script>
+</body>
+</html>
