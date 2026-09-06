@@ -345,6 +345,19 @@ button, input, textarea, select { font: inherit; }
   transition: .3s;
 }
 .service-card:hover .card-arrow { background: var(--gold); color: #18100c; transform: rotate(45deg); }
+.service-card[role="link"] { cursor: pointer; }
+.service-card[role="link"]:focus-visible { outline: 2px solid var(--gold-light); outline-offset: 6px; }
+.video-services { background: linear-gradient(180deg, rgba(216,172,114,.035), transparent 36%); }
+.video-services-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+.video-service-tile { position: relative; display: block; min-height: 480px; overflow: hidden; border: 1px solid var(--line); border-radius: 28px; background: #120d0b; isolation: isolate; }
+.video-service-tile video { width: 100%; height: 100%; object-fit: cover; transition: transform .8s cubic-bezier(.2,.8,.2,1), filter .45s ease; }
+.video-service-tile::after { content: ""; position: absolute; inset: 0; z-index: 1; background: linear-gradient(180deg, transparent 34%, rgba(8,5,4,.84) 100%); pointer-events: none; }
+.video-service-tile:hover video { transform: scale(1.06); filter: saturate(1.06); }
+.video-service-tile__play { position: absolute; z-index: 3; top: 22px; left: 22px; width: 48px; height: 48px; display: grid; place-items: center; border: 1px solid rgba(255,255,255,.34); border-radius: 50%; color: var(--gold-light); background: rgba(12,9,8,.42); backdrop-filter: blur(12px); font-size: 13px; transition: .25s ease; }
+.video-service-tile:hover .video-service-tile__play { color: var(--bg); background: var(--gold-light); transform: scale(1.08); }
+.video-service-tile__meta { position: absolute; z-index: 3; right: 24px; left: 24px; bottom: 24px; display: grid; gap: 8px; }
+.video-service-tile__meta small { color: var(--gold-light); font-size: 10px; letter-spacing: .08em; }
+.video-service-tile__meta b { max-width: 270px; font-size: clamp(20px, 2vw, 29px); font-weight: 500; line-height: 1.35; }
 .academy-card { background: linear-gradient(145deg, #37241d, #1b1210); }
 .academy-shape {
   position: absolute; width: 330px; height: 330px; border-radius: 50%;
@@ -933,6 +946,8 @@ button, input, textarea, select { font: inherit; }
   .footer-bottom a { justify-self: center; }
   .whatsapp-float span { display: none; }
   .whatsapp-float { padding: 6px; }
+  .video-services-grid { grid-template-columns: 1fr; gap: 16px; }
+  .video-service-tile { min-height: 460px; }
 }
 
 @media (prefers-reduced-motion: reduce) {

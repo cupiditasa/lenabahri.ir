@@ -39,6 +39,29 @@ document.querySelectorAll(".reveal").forEach((element, index) => {
   revealObserver.observe(element);
 });
 
+document.querySelectorAll(".service-card").forEach((card) => {
+  const target = card.querySelector(".card-arrow")?.getAttribute("href");
+  if (!target) return;
+  card.setAttribute("tabindex", "0");
+  card.setAttribute("role", "link");
+  card.addEventListener("click", (event) => {
+    if (event.target.closest("a")) return;
+    window.location.href = target;
+  });
+  card.addEventListener("keydown", (event) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      window.location.href = target;
+    }
+  });
+});
+
+document.querySelectorAll(".video-service-tile video").forEach((video) => {
+  const tile = video.closest(".video-service-tile");
+  tile?.addEventListener("pointerenter", () => video.play().catch(() => {}));
+  tile?.addEventListener("pointerleave", () => { video.pause(); video.currentTime = 0; });
+});
+
 if (glow) {
   window.addEventListener("mousemove", (event) => {
     glow.style.transform = `translate3d(${event.clientX}px, ${event.clientY}px, 0) translate(-50%, -50%)`;

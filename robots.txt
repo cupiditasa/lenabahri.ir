@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://lenabahri.ir/sitemap.xml
