@@ -4,6 +4,17 @@ const navLinks = document.querySelectorAll(".main-nav a");
 const glow = document.querySelector(".cursor-glow");
 const bookingForm = document.querySelector("#bookingForm");
 
+// Cloudflare Web Analytics RUM beacon (site token configured for lenabahri.ir).
+// Inject once from the shared script so every static page is measured consistently.
+if (!document.querySelector('script[data-lena-cf-analytics]')) {
+  const analyticsScript = document.createElement("script");
+  analyticsScript.type = "module";
+  analyticsScript.src = "https://static.cloudflareinsights.com/beacon.min.js";
+  analyticsScript.dataset.cfBeacon = JSON.stringify({ token: "059abd4ecd4c4c779af40a804df79e75" });
+  analyticsScript.dataset.lenaCfAnalytics = "true";
+  document.head.appendChild(analyticsScript);
+}
+
 const year = document.querySelector("#year");
 if (year) year.textContent = new Date().getFullYear();
 
