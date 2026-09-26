@@ -20,7 +20,7 @@ function lenaConversationId() {
 
 window.LenaAssistantConfig = {
   mode: "api",
-  endpoint: "https://chat.lenabahri.ir/site-api/chat",
+  endpoint: "https://chat.mgfitclub.ir/site-api/chat",
   method: "POST",
   headers: {
     "Content-Type": "application/json",
