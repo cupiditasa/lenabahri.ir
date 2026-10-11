@@ -8,6 +8,41 @@ import xml.etree.ElementTree as ET
 
 ROOT = Path(__file__).resolve().parents[1]
 DATA = json.loads((ROOT / "data" / "beauty-news.json").read_text(encoding="utf-8"))
+EXTRA_PATH = ROOT / "data" / "beauty-news-extra.json"
+if EXTRA_PATH.exists():
+    EXTRA = json.loads(EXTRA_PATH.read_text(encoding="utf-8"))
+    DATA["categories"].extend(EXTRA.get("categories", []))
+    category_labels = {category["slug"]: category["label"] for category in DATA["categories"]}
+    article_overrides = EXTRA.get("articleOverrides", {})
+    slug_overrides = {slug: values.get("slug", slug) for slug, values in article_overrides.items()}
+    extra_articles = []
+    for article in EXTRA.get("articles", []):
+        if not article.pop("published", True):
+            continue
+        original_slug = article["slug"]
+        article.update(article_overrides.get(original_slug, {}))
+        article.update(article_overrides.get(original_slug + "-content", {}))
+        article.update(EXTRA.get("sourceOverrides", {}).get(article["sourceUrl"], {}))
+        if article["slug"] != original_slug:
+            article["image"] = article["image"].replace(original_slug, article["slug"])
+        article["related"] = [slug_overrides.get(slug, slug) for slug in article.get("related", [])]
+        article.setdefault("categoryLabel", category_labels[article["category"]])
+        article.setdefault("metaTitle", article["title"][:65])
+        article.setdefault("readingTime", 4)
+        article.setdefault("schemaType", "NewsArticle")
+        article.setdefault("serviceUrl", "/nano-brows-shiraz.html" if article["category"] == "brows" else "/lip-blush-shiraz.html")
+        article.setdefault("serviceLabel", "مشاهده خدمات مرتبط در شیراز")
+        article["sections"] = [
+            {"heading": article.pop("sourceHeading"), "paragraphs": [article.pop("sourceSummary")]},
+            {"heading": article.pop("editorHeading"), "paragraphs": [article.pop("editorialTake")]},
+        ]
+        extra_articles.append(article)
+    DATA["articles"].extend(extra_articles)
+    for slug, image in EXTRA.get("imageOverrides", {}).items():
+        article = next((item for item in DATA["articles"] if item["slug"] == slug), None)
+        if article is None:
+            raise ValueError(f"Image override refers to unknown article: {slug}")
+        article["image"], article["imageAlt"] = image
 SITE = DATA["siteUrl"].rstrip("/")
 NEWS_PATH = "/khabar/beauty/"
 PUBLISHER = DATA["publisher"]
@@ -105,7 +140,7 @@ def article_page(article, by_slug):
   {crumbs(article["title"])}
   <article class="news-article">
     <header class="article-heading"><a class="news-category" href="{NEWS_PATH}#category-{esc(article["category"])}">{esc(article["categoryLabel"])}</a><h1>{esc(article["title"])}</h1><p class="article-dek">{esc(article["excerpt"])}</p><div class="article-byline"><span>نویسنده: {esc(NEWSROOM)}</span><time datetime="{PUBLISH_DATE}">{esc(date_label(PUBLISH_DATE))}</time><span>{esc(article["readingTime"])} دقیقه مطالعه</span></div></header>
-    <figure class="article-hero"><img src="{esc(article["image"])}" alt="{esc(article["imageAlt"])}" fetchpriority="high"><figcaption>تصویر آرشیوی مجموعهٔ لنا بحری؛ صرفاً برای تصویرسازی موضوع.</figcaption></figure>
+    <figure class="article-hero"><img src="{esc(article["image"])}" alt="{esc(article["imageAlt"])}" fetchpriority="high"><figcaption>تصویرسازی هوش مصنوعی اختصاصی برای این موضوع؛ نه عکس خبری و نه نمونه‌کار.</figcaption></figure>
     <p class="article-lead">{esc(article["lead"])}</p>
     {sections}
     <aside class="source-note"><h2>منبع و تاریخ گزارش</h2><p>این مطلب بر پایهٔ منبع زیر و با جمع‌بندی تحریریه تهیه شده است. تاریخ انتشار منبع: {esc(article["sourceDate"])}.</p><a href="{esc(article["sourceUrl"])}" target="_blank" rel="noopener noreferrer">{esc(article["sourceTitle"])} — {esc(article["sourceLabel"])} <span aria-hidden="true">↗</span></a><small>این صفحه در {esc(date_label(PUBLISH_DATE))} به فارسی منتشر شده و بازنویسی/تحلیل مستقل تحریریه است؛ نقل مستقیم طولانی از منبع نیست.</small></aside>
@@ -188,6 +223,15 @@ def main():
     by_slug = {article["slug"]: article for article in DATA["articles"]}
     if len(by_slug) != len(DATA["articles"]):
         raise ValueError("Article slugs must be unique")
+    image_paths = [article["image"] for article in DATA["articles"]]
+    if len(set(image_paths)) != len(image_paths):
+        raise ValueError("Every article must have its own unique image")
+    for article in DATA["articles"]:
+        image_path = ROOT / article["image"].lstrip("/")
+        if not image_path.is_file():
+            raise FileNotFoundError(f"Missing image for {article['slug']}: {image_path}")
+        if not article.get("imageAlt", "").strip():
+            raise ValueError(f"Image alt text is required: {article['slug']}")
     (ROOT / "khabar" / "beauty").mkdir(parents=True, exist_ok=True)
     (ROOT / "khabar" / "beauty" / "index.html").write_text(hub_page(), encoding="utf-8")
     for article in DATA["articles"]:
