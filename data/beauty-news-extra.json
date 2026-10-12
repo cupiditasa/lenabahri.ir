@@ -3,6 +3,13 @@
     {"slug":"skincare","label":"مراقبت پوست","description":"روندها و گزارش‌های مراقبت پوست با تفکیک ادعاهای زیبایی از شواهد و توصیه‌های حرفه‌ای."},
     {"slug":"industry","label":"صنعت و محصولات","description":"خبرهای صنعت زیبایی، معرفی محصولات و شیوه‌های انتخاب آگاهانه و بررسی منابع."}
   ],
+  "serviceOverrides": {
+    "fall-makeup-trends-2026": {"serviceUrl":"", "serviceLabel":""},
+    "pink-brows-runway-ss27": {"serviceUrl":"/nano-brows-shiraz.html", "serviceLabel":"نانو بروز و شید ابرو در شیراز", "serviceContext":"روندهای ابرو الهام‌بخش‌اند، اما انتخاب آرایش دائم باید با فرم چهره و شرایط پوست هر فرد سنجیده شود.", "serviceLinkLabel":"دیدن خدمات ابرو"},
+    "low-contrast-brows-2026": {"serviceUrl":"/nano-brows-shiraz.html", "serviceLabel":"نانو بروز و شید ابرو در شیراز", "serviceContext":"رنگ و فرم مناسب برای هر فرد متفاوت است؛ این گزارش ترند را با نمونهٔ خدمات واقعی ابرو یکی نمی‌گیرد.", "serviceLinkLabel":"دیدن خدمات ابرو"},
+    "thin-brow-comeback-2026": {"serviceUrl":"/nano-brows-shiraz.html", "serviceLabel":"نانو بروز و شید ابرو در شیراز", "serviceContext":"یک ترند آرایشی نسخهٔ ثابت برای همه نیست؛ پیش از تصمیم دائمی، فرم چهره و شرایط پوست را بررسی کنید.", "serviceLinkLabel":"دیدن خدمات ابرو"},
+    "tattoo-removal-cream-fda": {"serviceUrl":"", "serviceLabel":""}
+  },
   "imageOverrides": {
     "lip-blur-autumn-2026": ["/assets/news/lip-blur-autumn-2026.jpg", "آرایش ادیتوریال لب با طیف بری و مرزهای محو؛ تصویرسازی اختصاصی، نه عکس نمونه‌کار"],
     "bold-lip-comeback": ["/assets/news/bold-lip-comeback.jpg", "کلوزآپ ادیتوریال لب با رژ قرمز پررنگ؛ تصویرسازی اختصاصی برای گزارش روند آرایش"],

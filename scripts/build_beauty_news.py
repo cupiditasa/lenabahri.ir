@@ -30,8 +30,8 @@ if EXTRA_PATH.exists():
         article.setdefault("metaTitle", article["title"][:65])
         article.setdefault("readingTime", 4)
         article.setdefault("schemaType", "NewsArticle")
-        article.setdefault("serviceUrl", "/nano-brows-shiraz.html" if article["category"] == "brows" else "/lip-blush-shiraz.html")
-        article.setdefault("serviceLabel", "مشاهده خدمات مرتبط در شیراز")
+        article.setdefault("serviceUrl", "")
+        article.setdefault("serviceLabel", "")
         article["sections"] = [
             {"heading": article.pop("sourceHeading"), "paragraphs": [article.pop("sourceSummary")]},
             {"heading": article.pop("editorHeading"), "paragraphs": [article.pop("editorialTake")]},
@@ -43,11 +43,18 @@ if EXTRA_PATH.exists():
         if article is None:
             raise ValueError(f"Image override refers to unknown article: {slug}")
         article["image"], article["imageAlt"] = image
+    for slug, values in EXTRA.get("serviceOverrides", {}).items():
+        article = next((item for item in DATA["articles"] if item["slug"] == slug), None)
+        if article is None:
+            raise ValueError(f"Service override refers to unknown article: {slug}")
+        article.update(values)
 SITE = DATA["siteUrl"].rstrip("/")
 NEWS_PATH = "/khabar/beauty/"
+EDITORIAL_PATH = NEWS_PATH + "editorial-policy/"
 PUBLISHER = DATA["publisher"]
 NEWSROOM = DATA["newsroom"]
 PUBLISH_DATE = DATA["publishedAt"]
+MODIFIED_DATE = DATA.get("modifiedAt", PUBLISH_DATE)
 
 
 def esc(value):
@@ -108,8 +115,8 @@ def source_schema(article):
         "description": article["description"],
         "image": [absolute(article["image"])],
         "datePublished": PUBLISH_DATE,
-        "dateModified": PUBLISH_DATE,
-        "author": {"@type": "Organization", "name": NEWSROOM, "url": absolute(NEWS_PATH)},
+        "dateModified": MODIFIED_DATE,
+        "author": {"@type": "Organization", "name": NEWSROOM, "url": absolute(EDITORIAL_PATH)},
         "publisher": {"@type": "Organization", "name": PUBLISHER, "url": absolute("/")},
         "mainEntityOfPage": {"@type": "WebPage", "@id": absolute(NEWS_PATH + article["slug"])},
         "articleSection": article["categoryLabel"],
@@ -124,11 +131,14 @@ def article_page(article, by_slug):
     related = [by_slug[slug] for slug in article.get("related", []) if slug in by_slug and slug != article["slug"]]
     related_html = "".join(f'<a class="related-link" href="{NEWS_PATH}{esc(item["slug"])}"><span>{esc(item["categoryLabel"])}</span><strong>{esc(item["title"])}</strong></a>' for item in related[:3])
     sections = "".join(f'<section><h2>{esc(section["heading"])}</h2>{"".join(f"<p>{esc(paragraph)}</p>" for paragraph in section["paragraphs"])}</section>' for section in article["sections"])
-    extra_links = [item for item in DATA["articles"] if item["slug"] != article["slug"] and item not in related]
-    extra = extra_links[0] if extra_links else None
-    if len(related) < 2 and extra:
-        related_html += f'<a class="related-link" href="{NEWS_PATH}{esc(extra["slug"])}"><span>{esc(extra["categoryLabel"])}</span><strong>{esc(extra["title"])}</strong></a>'
+    service_note = ""
+    if article.get("serviceUrl"):
+        service_note = f'''    <aside class="service-note"><div><span>خدمات مرتبط در شیراز</span><h2>{esc(article.get("serviceLabel") or "اطلاعات خدمات")}</h2><p>{esc(article.get("serviceContext") or "این گزارش عمومی جایگزین مشاورهٔ فردی نیست؛ جزئیات خدمات را جداگانه بررسی کنید.")}</p></div><a href="{esc(article["serviceUrl"])}">{esc(article.get("serviceLinkLabel") or "مشاهده جزئیات")} <span aria-hidden="true">←</span></a></aside>'''
     schema = {"@context": "https://schema.org", "@graph": [source_schema(article), {
+        "@type": "WebPage", "url": canonical,
+        "reviewedBy": {"@type": "Person", "name": "لنا بحری", "url": absolute("/about.html"), "jobTitle": "مستر آرتیست و مدرس آرایش دائم"},
+        "mainEntity": {"@id": canonical},
+    }, {
         "@type": "BreadcrumbList", "itemListElement": [
             {"@type": "ListItem", "position": 1, "name": "خانه", "item": absolute("/")},
             {"@type": "ListItem", "position": 2, "name": "اخبار دنیای زیبایی", "item": absolute(NEWS_PATH)},
@@ -139,17 +149,17 @@ def article_page(article, by_slug):
 <main class="news-shell news-article-shell">
   {crumbs(article["title"])}
   <article class="news-article">
-    <header class="article-heading"><a class="news-category" href="{NEWS_PATH}#category-{esc(article["category"])}">{esc(article["categoryLabel"])}</a><h1>{esc(article["title"])}</h1><p class="article-dek">{esc(article["excerpt"])}</p><div class="article-byline"><span>نویسنده: {esc(NEWSROOM)}</span><time datetime="{PUBLISH_DATE}">{esc(date_label(PUBLISH_DATE))}</time><span>{esc(article["readingTime"])} دقیقه مطالعه</span></div></header>
+    <header class="article-heading"><a class="news-category" href="{NEWS_PATH}#category-{esc(article["category"])}">{esc(article["categoryLabel"])}</a><h1>{esc(article["title"])}</h1><p class="article-dek">{esc(article["excerpt"])}</p><div class="article-byline"><span>نویسنده: <a href="{EDITORIAL_PATH}">{esc(NEWSROOM)}</a></span><span>بازبینی تخصصی: <a href="/about.html">لنا بحری</a></span><time datetime="{PUBLISH_DATE}">{esc(date_label(PUBLISH_DATE))}</time><span>{esc(article["readingTime"])} دقیقه مطالعه</span></div></header>
     <figure class="article-hero"><img src="{esc(article["image"])}" alt="{esc(article["imageAlt"])}" fetchpriority="high"><figcaption>تصویرسازی هوش مصنوعی اختصاصی برای این موضوع؛ نه عکس خبری و نه نمونه‌کار.</figcaption></figure>
     <p class="article-lead">{esc(article["lead"])}</p>
     {sections}
-    <aside class="source-note"><h2>منبع و تاریخ گزارش</h2><p>این مطلب بر پایهٔ منبع زیر و با جمع‌بندی تحریریه تهیه شده است. تاریخ انتشار منبع: {esc(article["sourceDate"])}.</p><a href="{esc(article["sourceUrl"])}" target="_blank" rel="noopener noreferrer">{esc(article["sourceTitle"])} — {esc(article["sourceLabel"])} <span aria-hidden="true">↗</span></a><small>این صفحه در {esc(date_label(PUBLISH_DATE))} به فارسی منتشر شده و بازنویسی/تحلیل مستقل تحریریه است؛ نقل مستقیم طولانی از منبع نیست.</small></aside>
-    <aside class="service-note"><div><span>از روند تا انتخاب شخصی</span><h2>{esc(article["serviceLabel"])}</h2><p>ترندهای آرایشی را از خدمات آرایش دائم جدا ببینید و برای تصمیم متناسب با شرایط خودتان مشاوره بگیرید.</p></div><a href="{esc(article["serviceUrl"])}">دیدن جزئیات خدمات <span aria-hidden="true">←</span></a></aside>
+    <aside class="source-note"><h2>منبع و تاریخ گزارش</h2><p>این مطلب بر پایهٔ منبع زیر با کمک ابزارهای هوش مصنوعی برای پیش‌نویس و جمع‌بندی تحریریه تهیه شده است. تاریخ انتشار منبع: {esc(article["sourceDate"])}.</p><a href="{esc(article["sourceUrl"])}" target="_blank" rel="noopener noreferrer">{esc(article["sourceTitle"])} — {esc(article["sourceLabel"])} <span aria-hidden="true">↗</span></a><small>این صفحه در {esc(date_label(PUBLISH_DATE))} به فارسی منتشر شده است. جزئیات روش تهیه و محدودیت‌های این گزارش را در <a href="{EDITORIAL_PATH}">اصول تحریریه</a> بخوانید.</small></aside>
+{service_note}
     <section class="related-section"><h2>مطالب مرتبط</h2><div class="related-grid">{related_html}</div></section>
   </article>
   <p class="back-to-news"><a href="{NEWS_PATH}">← بازگشت به همهٔ خبرهای زیبایی</a></p>
 </main>
-<footer class="news-footer"><span>© {PUBLISH_DATE[:4]} {esc(PUBLISHER)}</span><a href="/">صفحهٔ اصلی</a><a href="/about.html">دربارهٔ لنا</a></footer>
+<footer class="news-footer"><span>© {PUBLISH_DATE[:4]} {esc(PUBLISHER)}</span><a href="/">صفحهٔ اصلی</a><a href="/about.html">دربارهٔ لنا</a><a href="{EDITORIAL_PATH}">اصول تحریریه</a></footer>
 </body></html>'''
     return doc_head(article["metaTitle"], article["description"], canonical, article["image"], schema, "article") + body
 
@@ -177,10 +187,42 @@ def hub_page():
   <section class="news-categories"><div class="section-heading"><span>EXPLORE</span><h2>موضوعات این مجموعه</h2></div><div class="category-panels">{"".join(f'<section id="category-{esc(c["slug"])}"><h3>{esc(c["label"])}</h3><p>{esc(c["description"])}</p><ul>{"".join(f"<li><a href=\"{NEWS_PATH}{esc(a['slug'])}\">{esc(a['title'])}</a></li>" for a in DATA["articles"] if a["category"] == c["slug"])}</ul></section>' for c in DATA["categories"])}</div></section>
   <aside class="editorial-note"><span>یادداشت تحریریه</span><p>موضوعات مد و زیبایی ممکن است با بازارها و سلیقه‌های مختلف تفاوت داشته باشند. گزارش‌های ایمنی با ذکر نهاد و حوزهٔ جغرافیایی منبع ارائه می‌شوند؛ برای تصمیم شخصی دربارهٔ سلامت یا آرایش دائم با متخصص واجد صلاحیت مشورت کنید.</p></aside>
 </main>
-<footer class="news-footer"><span>© {PUBLISH_DATE[:4]} {esc(PUBLISHER)}</span><a href="/">صفحهٔ اصلی</a><a href="/about.html">دربارهٔ لنا</a><a href="/portfolio.html">نمونه‌کارها</a></footer>
+<footer class="news-footer"><span>© {PUBLISH_DATE[:4]} {esc(PUBLISHER)}</span><a href="/">صفحهٔ اصلی</a><a href="/about.html">دربارهٔ لنا</a><a href="/portfolio.html">نمونه‌کارها</a><a href="{EDITORIAL_PATH}">اصول تحریریه</a></footer>
 <script src="/assets/beauty-news.js" defer></script>
 </body></html>'''
     return doc_head("خبرهای دنیای زیبایی | ترندها و راهنماها | لنا بحری", description, canonical, image, schema) + body
+
+
+def editorial_page():
+    canonical = absolute(EDITORIAL_PATH)
+    title = "اصول تحریریه و روش تهیهٔ خبرها | لنا بحری"
+    description = "روش تهیه، منبع‌دهی، تصویرها و محدودیت‌های خبرهای دنیای زیبایی در وب‌سایت لنا بحری."
+    image = DATA["articles"][0]["image"]
+    schema = {"@context": "https://schema.org", "@graph": [
+        {"@type": "AboutPage", "name": title, "description": description, "url": canonical, "inLanguage": "fa-IR", "publisher": {"@type": "Organization", "name": PUBLISHER, "url": absolute("/")}},
+        {"@type": "BreadcrumbList", "itemListElement": [
+            {"@type": "ListItem", "position": 1, "name": "خانه", "item": absolute("/")},
+            {"@type": "ListItem", "position": 2, "name": "اخبار دنیای زیبایی", "item": absolute(NEWS_PATH)},
+            {"@type": "ListItem", "position": 3, "name": "اصول تحریریه", "item": canonical},
+        ]},
+    ]}
+    body = f'''<body class="beauty-news">
+{page_header()}
+<main class="news-shell news-article-shell">
+  {crumbs("اصول تحریریه")}
+  <article class="news-article">
+    <header class="article-heading"><h1>اصول تحریریهٔ خبرهای دنیای زیبایی</h1><p class="article-dek">شفافیت دربارهٔ نویسنده، منبع‌ها، تصویرها و محدودیت‌های این مجموعه.</p></header>
+    <section><h2>نویسنده و بازبینی تخصصی</h2><p>نویسندهٔ مطالب این مجموعه «{esc(NEWSROOM)}» است؛ نامی برای محتوای تحریریهٔ وب‌سایت. همهٔ مقاله‌های این مجموعه را لنا بحری، مستر آرتیست و مدرس آرایش دائم، خوانده و تأیید کرده است. این بازبینی به‌معنای نویسندگی یا تأیید پزشکی/درمانی مطالب نیست.</p></section>
+    <section><h2>روش تهیه</h2><p>برای تهیهٔ پیش‌نویس و جمع‌بندی فارسی از ابزارهای هوش مصنوعی کمک گرفته می‌شود و منبع هر گزارش در همان صفحه پیوند داده شده است. این مطالب خلاصه و توضیح تحریریه از منابع عمومی‌اند؛ ادعای آزمایش مستقل محصول، مصاحبهٔ اختصاصی یا تجربهٔ درمانی نیستند، مگر آن‌که همان صفحه صریحاً چنین چیزی را مستند کند.</p></section>
+    <section><h2>منبع و محدودهٔ جغرافیایی</h2><p>تاریخ منبع از تاریخ انتشار مطلب فارسی جداگانه درج می‌شود. اطلاعات نهادهای خارجی مانند FDA مربوط به همان حوزهٔ قضایی است و به‌معنای تفسیر قوانین ایران نیست.</p></section>
+    <section><h2>تصویرها و موضوعات سلامت</h2><p>تصویرهای دارای برچسب تصویرسازی هوش مصنوعی، عکس واقعیِ رویداد، محصول، محیط کار یا نمونه‌کار نیستند. مطالب ایمنی و پوست نیز توصیهٔ پزشکی یا جایگزین مشورت با پزشک و متخصص واجد صلاحیت محسوب نمی‌شوند.</p></section>
+    <section><h2>اصلاح و بازخورد</h2><p>اگر خطا یا منبع تازه‌ای دیدید، از راه صفحهٔ <a href="/about.html">دربارهٔ لنا و ارتباط</a> اطلاع دهید تا مطلب بررسی و در صورت نیاز اصلاح شود.</p></section>
+  </article>
+  <p class="back-to-news"><a href="{NEWS_PATH}">← بازگشت به خبرهای زیبایی</a></p>
+</main>
+<footer class="news-footer"><span>© {PUBLISH_DATE[:4]} {esc(PUBLISHER)}</span><a href="/">صفحهٔ اصلی</a><a href="{NEWS_PATH}">اخبار زیبایی</a><a href="/about.html">ارتباط</a></footer>
+</body></html>'''
+    return doc_head(title, description, canonical, image, schema) + body
 
 
 def update_sitemap():
@@ -188,31 +230,23 @@ def update_sitemap():
     sitemap_text = sitemap_path.read_text(encoding="utf-8")
     root = ET.fromstring(sitemap_text)
     namespace = "{http://www.sitemaps.org/schemas/sitemap/0.9}"
-    existing = {node.findtext(namespace + "loc") for node in root.findall(namespace + "url")}
-    new_urls = [NEWS_PATH] + [NEWS_PATH + article["slug"] for article in DATA["articles"]]
-    additions = []
-    for path in new_urls:
+    managed_paths = ["/", NEWS_PATH, EDITORIAL_PATH] + [NEWS_PATH + article["slug"] for article in DATA["articles"]]
+    entries = {node.findtext(namespace + "loc"): node for node in root.findall(namespace + "url")}
+    for path in managed_paths:
         loc = absolute(path)
-        if loc in existing:
-            continue
-        priority = "0.7" if path == NEWS_PATH else "0.6"
-        additions.append(f'''  <url>
-    <loc>{loc}</loc>
-    <lastmod>{PUBLISH_DATE}</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>{priority}</priority>
-  </url>''')
-    if additions:
-        for path in new_urls:
-            loc = absolute(path)
-            if loc in existing:
-                continue
+        node = entries.get(loc)
+        if node is None:
             node = ET.SubElement(root, namespace + "url")
             ET.SubElement(node, namespace + "loc").text = loc
-            ET.SubElement(node, namespace + "lastmod").text = PUBLISH_DATE
+            ET.SubElement(node, namespace + "lastmod").text = MODIFIED_DATE
             ET.SubElement(node, namespace + "changefreq").text = "monthly"
-            ET.SubElement(node, namespace + "priority").text = "0.7" if path == NEWS_PATH else "0.6"
-            existing.add(loc)
+            ET.SubElement(node, namespace + "priority").text = "0.7" if path in ("/", NEWS_PATH) else "0.6"
+            entries[loc] = node
+            continue
+        lastmod = node.find(namespace + "lastmod")
+        if lastmod is None:
+            lastmod = ET.SubElement(node, namespace + "lastmod")
+        lastmod.text = MODIFIED_DATE
     ET.register_namespace("", "http://www.sitemaps.org/schemas/sitemap/0.9")
     ET.indent(root, space="  ")
     xml_content = ET.tostring(root, encoding="unicode")
@@ -234,6 +268,9 @@ def main():
             raise ValueError(f"Image alt text is required: {article['slug']}")
     (ROOT / "khabar" / "beauty").mkdir(parents=True, exist_ok=True)
     (ROOT / "khabar" / "beauty" / "index.html").write_text(hub_page(), encoding="utf-8")
+    policy_dir = ROOT / EDITORIAL_PATH.strip("/")
+    policy_dir.mkdir(parents=True, exist_ok=True)
+    (policy_dir / "index.html").write_text(editorial_page(), encoding="utf-8")
     for article in DATA["articles"]:
         if not re.fullmatch(r"[a-z0-9-]+", article["slug"]):
             raise ValueError(f"Invalid slug: {article['slug']}")
