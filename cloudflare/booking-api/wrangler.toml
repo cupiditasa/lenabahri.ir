@@ -1,0 +1,17 @@
+name = "lena-booking-api"
+main = "src/worker.js"
+compatibility_date = "2026-10-12"
+workers_dev = false
+
+routes = [
+  { pattern = "lenabahri.ir/api/*", zone_name = "lenabahri.ir" }
+]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "lena-bookings"
+database_id = "458497f1-69f8-44b9-baae-cb342635c250"
+migrations_dir = "migrations"
+
+[triggers]
+crons = ["0 * * * *"]

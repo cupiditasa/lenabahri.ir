@@ -319,6 +319,8 @@ button, input, textarea, select { font: inherit; }
 
 .services { background: linear-gradient(180deg, #0c0908, #120d0b); }
 .services-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; perspective: 1200px; }
+.services-price-link { display: inline-block; margin-top: 10px; color: var(--gold-light); font-size: 12px; }
+.services-price-link:hover { color: var(--cream); }
 .service-card {
   height: 500px;
   border-radius: var(--radius);
@@ -844,6 +846,16 @@ button, input, textarea, select { font: inherit; }
 .booking-form select option { color: #18110e; }
 .booking-form input:focus, .booking-form textarea:focus, .booking-form select:focus { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(216,172,114,.08); }
 .booking-form input::placeholder, .booking-form textarea::placeholder { color: #70645d; }
+.booking-photo-field input[type="file"] { padding: 10px; color: var(--muted); }
+.booking-form .booking-photo-field[hidden] { display: none; }
+.booking-photo-field small { display: block; margin-top: 9px; color: #bda996; font-size: 10px; line-height: 1.9; }
+.booking-form .booking-consent { display: grid; grid-template-columns: auto 1fr; align-items: start; gap: 10px; color: var(--muted); font-size: 10px; line-height: 1.9; }
+.booking-consent input { width: 16px; height: 16px; margin: 4px 0 0; accent-color: var(--gold); }
+.booking-form .booking-consent span { margin: 0; }
+.booking-form .booking-honeypot { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.form-status { min-height: 1.5em; margin: 12px 0 0; color: var(--gold-light); font-size: 12px; line-height: 1.9; text-align: center; }
+.form-status a { color: var(--gold-light); text-decoration: underline; text-underline-offset: 4px; }
+.booking-form .submit-btn:disabled { opacity: .65; cursor: wait; }
 .submit-btn { width: 100%; gap: 15px; }
 .form-note { margin: 12px 0 0; color: #776b64; font-size: 9px; text-align: center; }
 

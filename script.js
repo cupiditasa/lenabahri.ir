@@ -3,6 +3,10 @@ const menuToggle = document.querySelector(".menu-toggle");
 const navLinks = document.querySelectorAll(".main-nav a");
 const glow = document.querySelector(".cursor-glow");
 const bookingForm = document.querySelector("#bookingForm");
+const paymentMethod = bookingForm?.querySelector('[name="payment_method"]');
+const bookingPhotoField = document.querySelector("#bookingPhotoField");
+const bookingPhotoInput = bookingPhotoField?.querySelector('input[type="file"]');
+const bookingFormStatus = document.querySelector("#bookingFormStatus");
 
 // Cloudflare Web Analytics RUM beacon (site token configured for lenabahri.ir).
 // Inject once from the shared script so every static page is measured consistently.
@@ -113,23 +117,97 @@ if (glow) {
 }
 
 if (bookingForm) {
-  bookingForm.addEventListener("submit", (event) => {
+  const serviceSelect = bookingForm.querySelector('[name="service"]');
+  const bookingQuery = new URLSearchParams(window.location.search);
+  const requestedService = bookingQuery.get("service");
+  const requestedPayment = bookingQuery.get("payment");
+  if (requestedService && serviceSelect) {
+    serviceSelect.value = requestedService;
+  }
+  if (requestedPayment && paymentMethod && ["cash", "consult"].includes(requestedPayment)) {
+    paymentMethod.value = requestedPayment;
+  }
+
+  const updatePhotoRequirement = () => {
+    const cashBooking = paymentMethod?.value === "cash";
+    if (bookingPhotoField) bookingPhotoField.hidden = !cashBooking;
+    if (bookingPhotoInput) {
+      bookingPhotoInput.required = cashBooking;
+      if (!cashBooking) {
+        bookingPhotoInput.setCustomValidity("");
+        bookingPhotoInput.value = "";
+      }
+    }
+  };
+
+  paymentMethod?.addEventListener("change", updatePhotoRequirement);
+  bookingPhotoInput?.addEventListener("change", () => bookingPhotoInput.setCustomValidity(""));
+  updatePhotoRequirement();
+
+  bookingForm.addEventListener("submit", async (event) => {
     event.preventDefault();
     const data = new FormData(bookingForm);
-    const name = data.get("name").trim();
-    const phone = data.get("phone").trim();
-    const service = data.get("service");
-    const message = data.get("message").trim();
+    const name = String(data.get("name") || "").trim();
+    const phone = String(data.get("phone") || "").trim();
+    const service = serviceSelect?.selectedOptions[0]?.textContent.trim() || "";
+    const payment = String(data.get("payment_method") || "");
+    const message = String(data.get("message") || "").trim();
+    const photo = data.get("photo");
+    const submitButton = bookingForm.querySelector('[type="submit"]');
 
-    const text = [
-      "سلام، برای مشاوره و رزرو وقت پیام می‌دهم.",
-      `نام: ${name}`,
-      `شماره تماس: ${phone}`,
-      `خدمت موردنظر: ${service}`,
-      message ? `توضیحات: ${message}` : ""
-    ].filter(Boolean).join("\n");
+    if (photo instanceof File && photo.size > 1_500_000) {
+      bookingPhotoInput.setCustomValidity("حجم عکس باید حداکثر ۱٫۵ مگابایت باشد.");
+      bookingPhotoInput.reportValidity();
+      return;
+    }
+    if (photo instanceof File && photo.size && !["image/jpeg", "image/png", "image/webp"].includes(photo.type)) {
+      bookingPhotoInput.setCustomValidity("فقط عکس JPG، PNG یا WebP پذیرفته می‌شود.");
+      bookingPhotoInput.reportValidity();
+      return;
+    }
 
-    window.open(`https://wa.me/989178280812?text=${encodeURIComponent(text)}`, "_blank", "noopener");
+    bookingPhotoInput?.setCustomValidity("");
+    if (bookingFormStatus) bookingFormStatus.textContent = "در حال ثبت امن درخواست…";
+    if (submitButton) submitButton.disabled = true;
+    const whatsappWindow = window.open("about:blank", "_blank");
+    if (whatsappWindow) whatsappWindow.opener = null;
+
+    try {
+      const response = await fetch("/api/bookings", { method: "POST", body: data, credentials: "same-origin" });
+      const result = await response.json();
+      if (!response.ok || !result.ok) throw new Error(result.error || "ثبت درخواست انجام نشد.");
+
+      const text = [
+        "سلام، درخواست رزرو/مشاوره از وب‌سایت لنا بحری دارم.",
+        `کد پیگیری: ${result.reference}`,
+        `نام: ${name}`,
+        `شماره تماس: ${phone}`,
+        `خدمت موردنظر: ${service}`,
+        `روش پرداخت/درخواست: ${payment === "cash" ? "رزرو با پرداخت نقدی و حضوری، پس از تأیید هماهنگی" : "درخواست مشاوره و هماهنگی"}`,
+        message ? `توضیحات: ${message}` : "",
+        photo instanceof File && photo.size ? "عکس در فرم سایت ثبت شده و از پنل مدیریت قابل مشاهده است." : ""
+      ].filter(Boolean).join("\n");
+      const whatsappUrl = `https://wa.me/989178280812?text=${encodeURIComponent(text)}`;
+      if (whatsappWindow) {
+        whatsappWindow.location.href = whatsappUrl;
+      } else if (bookingFormStatus) {
+        bookingFormStatus.textContent = `درخواست با کد ${result.reference} ثبت شد. `;
+        const link = document.createElement("a");
+        link.href = whatsappUrl;
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+        link.textContent = "برای اطلاع مدیر، ادامه در واتساپ";
+        bookingFormStatus.append(link);
+      }
+      bookingForm.reset();
+      updatePhotoRequirement();
+      if (bookingFormStatus && whatsappWindow) bookingFormStatus.textContent = `درخواست با کد ${result.reference} ثبت شد؛ پیش‌نویس واتساپ باز شد. ارسال نهایی را در واتساپ تأیید کنید.`;
+    } catch (error) {
+      whatsappWindow?.close();
+      if (bookingFormStatus) bookingFormStatus.textContent = error.message || "اتصال برقرار نشد؛ کمی بعد دوباره تلاش کنید.";
+    } finally {
+      if (submitButton) submitButton.disabled = false;
+    }
   });
 }
 

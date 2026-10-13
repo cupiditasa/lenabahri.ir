@@ -53,7 +53,7 @@
   }
   </script>
   <link rel="icon" href="assets/brand/logo-lb-optimized.png">
-  <link rel="stylesheet" href="style.css?v=20260813-6">
+  <link rel="stylesheet" href="style.css?v=20261012-1">
   <link rel="stylesheet" href="assistant-widget.css?v=20260813-10">
 </head>
 <body>
@@ -74,7 +74,7 @@
     </button>
 
     <nav class="main-nav" aria-label="منوی اصلی">
-      <a href="#services">خدمات</a>
+      <a href="services.html">خدمات و قیمت‌ها</a>
       <a href="portfolio.html">نمونه‌کارها</a>
       <a href="about.html">درباره من</a>
       <a href="/khabar/beauty/">اخبار زیبایی</a>
@@ -158,7 +158,7 @@
           <p class="eyebrow"><span></span> خدمات تخصصی</p>
           <h2>زیبایی طبیعی،<br><em>طراحی شده برای تو</em></h2>
         </div>
-        <p>هر چهره داستان منحصربه‌فردی دارد. انتخاب تکنیک، فرم و رنگ بر اساس آناتومی صورت و سلیقه شما انجام می‌شود.</p>
+        <p>هر چهره داستان منحصربه‌فردی دارد. انتخاب تکنیک، فرم و رنگ بر اساس آناتومی صورت و سلیقه شما انجام می‌شود. <a class="services-price-link" href="services.html">دیدن فهرست خدمات و قیمت‌ها ↙</a></p>
       </div>
 
       <div class="services-grid">
@@ -422,7 +422,7 @@
       <div class="booking-intro reveal">
         <p class="eyebrow"><span></span> رزرو و مشاوره</p>
         <h2>برای نسخه زیباترِ<br><em>خودت آماده‌ای؟</em></h2>
-        <p>فرم را پر کن؛ درخواستت مستقیم از طریق واتساپ ارسال می‌شود تا برای مشاوره و تعیین وقت با تو هماهنگ کنیم.</p>
+        <p>درخواست رزرو یا مشاوره‌ات را بفرست تا برای بررسی خدمت و هماهنگی زمان با تو تماس بگیریم. <a class="services-price-link" href="services.html">مشاهده خدمات و قیمت‌ها ↙</a></p>
         <div class="contact-mini">
           <a href="tel:+989178280812"><small>تلفن تماس</small><b dir="ltr">0917 828 0812</b></a>
           <div><small>آدرس</small><b>شیراز، معالی‌آباد</b></div>
@@ -444,22 +444,50 @@
           <span>خدمت موردنظر</span>
           <select name="service" required>
             <option value="" selected disabled>انتخاب کنید</option>
-            <option>میکروبلیدینگ</option>
-            <option>شید و نانو ابرو</option>
-            <option>شیدینگ لب</option>
-            <option>بن‌مژه طبیعی</option>
-            <option>آموزش تخصصی</option>
-            <option>مشاوره عمومی</option>
+            <option value="microblading">میکروبلدینگ ابرو (فیبروز) — ۶ میلیون تومان</option>
+            <option value="hairstroke">هیراستروک ابرو — ۷ میلیون تومان</option>
+            <option value="nano-brows">نانو بروز ابرو — ۶ میلیون تومان</option>
+            <option value="scalp-micropigmentation">میکرواسکالپ سر — ۳ تا ۲۰ میلیون تومان</option>
+            <option value="lip-shading">شیدینگ لب — ۶ میلیون تومان</option>
+            <option value="lip-tint">تینت لب — ۶ میلیون تومان</option>
+            <option value="eyeliner">خط چشم — ۶ میلیون تومان</option>
+            <option value="eye-shading">شید چشم — ۶ میلیون تومان</option>
+            <option value="lash-line">بن‌مژه — ۵ میلیون تومان</option>
+            <option value="brow-removal">ریموو ابرو — ۱۲ تا ۱۵ میلیون تومان</option>
+            <option value="training">آموزش تخصصی (استعلام قیمت)</option>
+            <option value="consultation">مشاوره عمومی</option>
           </select>
+        </label>
+        <label>
+          <span>روش پرداخت / نوع درخواست</span>
+          <select name="payment_method" required>
+            <option value="" selected disabled>انتخاب کنید</option>
+            <option value="cash">رزرو با پرداخت نقدی و حضوری</option>
+            <option value="consult">فعلاً فقط درخواست مشاوره و هماهنگی</option>
+          </select>
+        </label>
+        <label class="booking-photo-field" id="bookingPhotoField" hidden>
+          <span>عکس موردنیاز برای درخواست رزرو نقدی</span>
+          <input type="file" name="photo" accept="image/jpeg,image/png,image/webp" aria-describedby="photoUploadNotice">
+          <small id="photoUploadNotice">حداکثر حجم عکس ۱٫۵ مگابایت است. عکس از این فرم خودکار به واتساپ پیوست نمی‌شود؛ پس از بازشدن گفت‌وگو، همان عکس را در واتساپ دستی انتخاب و ارسال کن.</small>
         </label>
         <label>
           <span>توضیحات شما</span>
           <textarea name="message" rows="3" placeholder="اگر توضیحی دارید اینجا بنویسید..."></textarea>
         </label>
+        <label class="booking-honeypot" aria-hidden="true">
+          <span>وب‌سایت</span>
+          <input type="text" name="website" tabindex="-1" autocomplete="off">
+        </label>
+        <label class="booking-consent">
+          <input type="checkbox" name="consent" required>
+          <span>با ذخیرهٔ امن نام، شماره، خدمت، توضیحات و در رزرو نقدی عکس من در سامانهٔ رزرو لنا بحری موافقم. فقط مدیر مجموعه به آن دسترسی دارد؛ پاک‌سازی پایگاه فعال پس از ۹۰ روز انجام می‌شود و نسخهٔ فنی بازیابی ممکن است تا ۷ روز دیگر باقی بماند. برای هماهنگی، پیش‌نویس همین اطلاعات در واتساپ باز می‌شود و فقط با زدن «ارسال» به مدیر می‌رسد.</span>
+        </label>
         <button class="btn btn-primary submit-btn magnetic" type="submit">
-          ارسال درخواست در واتساپ <span>←</span>
+          ثبت درخواست و ادامه در واتساپ <span>←</span>
         </button>
-        <p class="form-note">با ثبت درخواست، هیچ پرداختی انجام نمی‌شود.</p>
+        <p class="form-status" id="bookingFormStatus" role="status" aria-live="polite"></p>
+        <p class="form-note">پرداخت آنلاین انجام نمی‌شود. عکس در فضای خصوصی ذخیره می‌شود و در پیام واتساپ خودکار پیوست نمی‌شود. مدیر پس از ثبت درخواست می‌تواند عکس را در پنل مدیریت ببیند.</p>
       </form>
     </section>
   </main>
@@ -488,7 +516,7 @@
     <b>☏</b>
   </a>
 
-  <script src="script.js?v=20260813-6"></script>
+  <script src="script.js?v=20261012-1"></script>
   <script src="assistant-config.js?v=20260926-tunnel-1"></script>
   <script src="assistant-widget.js?v=20260814-video-3"></script>
 </body>

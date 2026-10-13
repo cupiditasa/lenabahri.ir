@@ -1,0 +1,12 @@
+{
+  "name": "lena-booking-api",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test",
+    "check": "node --check src/worker.js && node --check ../../admin.js && node --check ../../script.js"
+  },
+  "devDependencies": {
+    "wrangler": "^4.149.0"
+  }
+}

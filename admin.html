@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow, noarchive">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'self'; object-src 'none'; frame-ancestors 'none'">
+  <meta name="referrer" content="no-referrer">
+  <title>مدیریت درخواست‌ها | لنا بحری</title>
+  <link rel="stylesheet" href="admin.css">
+  <script src="admin.js" defer></script>
+</head>
+<body>
+  <main class="admin-shell">
+    <header class="admin-header">
+      <a class="admin-brand" href="index.html"><span class="brand-mark">LB</span><span><b>LENA BAHRI</b><small>مدیریت درخواست‌ها</small></span></a>
+      <a class="back-link" href="index.html">بازگشت به سایت <span>←</span></a>
+    </header>
+
+    <section class="login-panel" id="loginPanel" aria-labelledby="loginTitle">
+      <p class="eyebrow">ورود امن مدیر</p>
+      <h1 id="loginTitle">پنل رزروها</h1>
+      <p class="muted">برای دیدن درخواست‌ها، وارد حساب مدیریت شوید.</p>
+      <form id="loginForm" autocomplete="on">
+        <label>نام کاربری<input name="username" type="text" autocomplete="username" value="lena" required></label>
+        <label>رمز عبور<input name="password" type="password" autocomplete="current-password" required></label>
+        <button class="primary-button" type="submit">ورود به پنل</button>
+      </form>
+      <p class="feedback" id="loginFeedback" role="status" aria-live="polite"></p>
+    </section>
+
+    <section class="dashboard" id="dashboard" hidden>
+      <div class="dashboard-title">
+        <div><p class="eyebrow">مدیریت مجموعه</p><h1>درخواست‌های رزرو</h1><p class="muted">اطلاعات و عکس‌های ثبت‌شده فقط برای مدیر قابل مشاهده‌اند.</p></div>
+        <button class="quiet-button" id="logoutButton" type="button">خروج امن</button>
+      </div>
+      <div class="summary" id="summary" aria-label="خلاصه درخواست‌ها"></div>
+      <div class="toolbar">
+        <label class="search-label"><span class="sr-only">جست‌وجو</span><input id="searchInput" type="search" placeholder="جست‌وجوی نام، شماره یا کد پیگیری"></label>
+        <label class="filter-label"><span class="sr-only">فیلتر وضعیت</span><select id="statusFilter"><option value="">همهٔ وضعیت‌ها</option><option value="pending">در انتظار</option><option value="contacted">تماس گرفته شد</option><option value="confirmed">تأیید شد</option><option value="completed">انجام شد</option><option value="cancelled">لغو شد</option></select></label>
+        <button class="quiet-button" id="refreshButton" type="button">تازه‌سازی</button>
+      </div>
+      <p class="feedback" id="dashboardFeedback" role="status" aria-live="polite"></p>
+      <div class="booking-list" id="bookingList"></div>
+    </section>
+    <footer>سامانهٔ خصوصی رزرو لنا بحری · پاک‌سازی پایگاه فعال پس از ۹۰ روز انجام می‌شود؛ نسخهٔ فنی بازیابی ممکن است تا ۷ روز دیگر باقی بماند.</footer>
+  </main>
+</body>
+</html>
