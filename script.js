@@ -193,10 +193,16 @@ if (bookingForm) {
       } else if (bookingFormStatus) {
         bookingFormStatus.textContent = `درخواست با کد ${result.reference} ثبت شد. `;
         const link = document.createElement("a");
-        link.href = whatsappUrl;
+        link.href = "https://wa.me/989178280812";
         link.target = "_blank";
         link.rel = "noopener noreferrer";
         link.textContent = "برای اطلاع مدیر، ادامه در واتساپ";
+        link.addEventListener("click", (clickEvent) => {
+          clickEvent.preventDefault();
+          const messageWindow = window.open(whatsappUrl, "_blank");
+          if (messageWindow) messageWindow.opener = null;
+          else window.location.assign(whatsappUrl);
+        });
         bookingFormStatus.append(link);
       }
       bookingForm.reset();
