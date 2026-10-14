@@ -80,6 +80,17 @@ const bookingMessages = {
 };
 const bookingCopy = bookingMessages[siteLocale] || bookingMessages.fa;
 
+const customerAccountLabels = { fa: "ورود کاربران", en: "Customer Login", ar: "دخول العملاء", zh: "用户登录" };
+const customerAccountLink = document.querySelector(".main-nav")?.querySelector("[data-customer-account-link]");
+const mainNavigation = document.querySelector(".main-nav");
+if (mainNavigation && !customerAccountLink) {
+  const accountLink = document.createElement("a");
+  accountLink.href = siteLocale === "fa" ? "/account.html" : `/${siteLocale}/account.html`;
+  accountLink.dataset.customerAccountLink = "true";
+  accountLink.textContent = customerAccountLabels[siteLocale] || customerAccountLabels.fa;
+  mainNavigation.append(accountLink);
+}
+
 // Cloudflare Web Analytics RUM beacon (site token configured for lenabahri.ir).
 // Inject once from the shared script so every static page is measured consistently.
 if (!document.querySelector('script[data-lena-cf-analytics]')) {

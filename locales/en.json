@@ -1,5 +1,6 @@
 {
   "common": {
+    "ورود کاربران": "Customer Login",
     "گزارش Allure برای پاییز ۲۰۲۶ چند مسیر میکاپ را برجسته می‌کند؛ انتخاب یک ویژگی برای تأکید، پوست سبک و مژه‌های نمایشی.": "Allure’s fall 2026 report highlights several makeup directions: emphasize one feature, keep skin lightweight and make lashes expressive.",
     "آرایش چشم پاییزی با رنگ‌های گرم در پرتره ادیتوریال اختصاصی": "Fall eye makeup in warm shades in a custom editorial portrait",
     "جلد سپتامبر British Vogue یک ظاهر تقریباً بی‌رنگ برای ابرو را مطرح کرد؛ این انتخاب نمایشی را نباید با نسخه مناسب آرایش دائم اشتباه گرفت.": "The September British Vogue cover featured a barely-there brow look; this editorial choice should not be mistaken for a permanent makeup recommendation.",
@@ -1746,6 +1747,33 @@
       "فرم مناسب شما، با بررسی خودتان": "A Brow Shape Chosen with You",
       "مشاوره رایگان پس از معاینه انجام می‌شود؛ درباره فرم، تکنیک و قیمت خدمات از نزدیک بپرسید.": "A complimentary consultation is available after an in-person assessment. Ask about shape, technique and service pricing.",
       "دیدن فهرست خدمات و قیمت‌ها ←": "View Services & Prices ←"
+    },
+    "account.html": {
+      "ورود امن مشتریان لنا بحری، تکمیل پروفایل و مشاهده وضعیت درخواست‌های رزرو.": "Secure Lena Bahri customer login, profile completion and appointment request tracking.",
+      "ورود کاربران و پیگیری سفارش | لنا بحری": "Customer Login and Order Tracking | Lena Bahri",
+      "ورود کاربران": "Customer Login",
+      "پروفایل و پیگیری سفارش": "PROFILE & ORDER TRACKING",
+      "حساب کاربری": "Customer account",
+      "با کد یک‌بارمصرف پیامکی وارد شو، اطلاعاتت را تکمیل کن و وضعیت درخواست‌هایت را ببین.": "Sign in with a one-time SMS code, complete your profile and check your request status.",
+      "شماره همراه": "Mobile number",
+      "مثلاً 0917 123 4567": "For example, 0917 123 4567",
+      "دریافت کد یک‌بارمصرف": "Send one-time code",
+      "کد پیامکی ۶ رقمی": "6-digit SMS code",
+      "تأیید کد و ورود": "Verify code and sign in",
+      "ارسال دوبارهٔ کد": "Resend code",
+      "تغییر شماره": "Change number",
+      "خروج از حساب": "Sign out",
+      "حساب شما": "YOUR ACCOUNT",
+      "اطلاعات پروفایل": "Profile details",
+      "عکس پروفایل": "Profile photo",
+      "عکس پروفایل (اختیاری)": "Profile photo (optional)",
+      "JPG، PNG یا WebP؛ حداکثر ۱٫۵ مگابایت. عکس عمومی نیست و فقط پس از ورود به حساب خودت نمایش داده می‌شود.": "JPG, PNG or WebP; up to 1.5 MB. The photo is private and only shown after you sign in.",
+      "با ذخیرهٔ نام و عکس اختیاری موافقم. داده‌ها از پایگاه فعال پس از ۹۰ روز پاک می‌شوند؛ نسخه‌های پشتیبان خصوصی ممکن است تا ۷ روز بیشتر باقی بمانند.": "I agree to store my name and optional photo. Active database data is deleted after 90 days; private backups may remain for up to 7 additional days.",
+      "ذخیرهٔ اطلاعات": "Save profile",
+      "درخواست‌های ثبت‌شده": "SUBMITTED REQUESTS",
+      "وضعیت سفارش‌ها": "Order status",
+      "ثبت درخواست جدید": "Send a new request",
+      "ورود فقط با کد پیامکی انجام می‌شود. وضعیت هر سفارش پس از بررسی و به‌روزرسانی توسط مجموعه نمایش داده می‌شود.": "Sign-in uses an SMS one-time code. Request status appears after the studio reviews and updates it."
     }
   }
 }

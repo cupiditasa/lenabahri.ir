@@ -167,7 +167,11 @@ function rewriteRelativeResources(tag, sourcePath) {
     if (!value || value.startsWith("#") || value.startsWith("/") || /^(?:[a-z]+:|\/\/)/i.test(value)) return match;
     const resourcePath = path.posix.normalize(path.posix.join(sourceDirectory === "." ? "" : sourceDirectory, value));
     if (resourcePath === ".." || resourcePath.startsWith("../")) return match;
-    return `${attribute}=${quote}/${resourcePath}${quote}`;
+      const versionedResourcePath = resourcePath
+       .replace(/^script\.js(?:\?[^#]*)?/, "script.js?v=20261014-customer-1")
+       .replace(/^gallery-data\.js(?:\?[^#]*)?/, "gallery-data.js?v=20261014-2")
+      .replace(/^service-videos\.js(?:\?[^#]*)?/, "service-videos.js?v=20261014-2");
+    return `${attribute}=${quote}/${versionedResourcePath}${quote}`;
   });
 }
 
@@ -178,7 +182,7 @@ function transformHtml(html, sourcePath, locale, catalog, pageSet, readyPages, m
     if (/^<script\b/i.test(token)) {
       inScript = true;
       jsonLd = /type\s*=\s*["']application\/ld\+json["']/i.test(token);
-      return token;
+      return rewriteRelativeResources(token, sourcePath);
     }
     if (/^<\/script\b/i.test(token)) {
       inScript = false;
@@ -215,8 +219,8 @@ function transformHtml(html, sourcePath, locale, catalog, pageSet, readyPages, m
   const headLinks = `<link rel="canonical" href="${canonical}">\n  ${alternates}\n  ${faAlternate}\n  ${defaultAlternate}\n  <link rel="stylesheet" href="/assets/site-locale.css">`;
   result = result.replace(/\s*<link\b[^>]*rel=["'](?:canonical|alternate)["'][^>]*>/gi, "");
   result = result.replace(/<\/head>/i, `${headLinks}\n</head>`);
-  if (!/src=["'][^"']*assets\/ga4\.js/i.test(html)) {
-    result = result.replace(/<\/body>/i, '<script src="/assets/site-locale.js" defer></script>\n</body>');
+  if (!/src=["'][^"']*assets\/site-locale\.js/i.test(result)) {
+    result = result.replace(/<\/body>/i, '<script src="/assets/site-locale.js?v=20261014-1" defer></script>\n</body>');
   }
   return result;
 }

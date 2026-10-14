@@ -24,6 +24,9 @@ const env = {
   ADMIN_PASSWORD_HASH: process.env.ADMIN_PASSWORD_HASH,
   SESSION_SECRET: process.env.SESSION_SECRET,
   RATE_LIMIT_SALT: process.env.RATE_LIMIT_SALT,
+  SMSIR_API_KEY: process.env.SMSIR_API_KEY,
+  SMSIR_OTP_TEMPLATE_ID: process.env.SMSIR_OTP_TEMPLATE_ID,
+  SMSIR_OTP_PARAMETER_NAME: process.env.SMSIR_OTP_PARAMETER_NAME || "CODE",
   DB: openBookingDatabase(process.env.BOOKING_DB_PATH)
 };
 

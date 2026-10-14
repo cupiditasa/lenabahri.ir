@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex, nofollow">
+  <meta name="description" content="Secure Lena Bahri customer login, profile details and appointment request status.">
+  <title>Customer Login & Order Status | Lena Bahri</title>
+  <link rel="icon" href="/assets/brand/logo-lb-optimized.png"><link rel="stylesheet" href="/style.css?v=20261012-1"><link rel="stylesheet" href="/assets/site-locale.css"><link rel="stylesheet" href="/assets/customer-account.css?v=20261014-1">
+</head>
+<body class="customer-account-page">
+  <header class="site-header" id="top"><a class="brand" href="/en/" aria-label="Lena Bahri home"><span class="brand-mark brand-logo"><img src="/assets/brand/logo-lb-optimized.png" alt=""></span><span class="brand-copy"><b>LENA BAHRI</b><small>PMU MASTER ARTIST</small></span></a><nav class="main-nav" aria-label="Main navigation"><a href="/en/">Home</a><a href="/en/services.html">Services & pricing</a><a href="/en/portfolio.html">Portfolio</a><a href="/en/account.html" data-customer-account-link>Customer login</a></nav><a class="header-cta" href="/en/#booking">Send a request <span>→</span></a></header>
+  <main class="account-layout">
+    <section class="account-intro"><p class="account-kicker">PROFILE & ORDER TRACKING</p><h1>Customer account</h1><p>Sign in with the mobile number used for your request, update your profile and check request status.</p></section>
+    <section class="account-panel" aria-live="polite">
+      <div id="loginView"><form id="phoneForm" class="account-form"><label for="customerPhone">Mobile number</label><input id="customerPhone" name="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="For example, 0917 123 4567" required><button class="account-button" type="submit">Send one-time code</button></form>
+        <form id="otpForm" class="account-form" hidden><label for="customerOtp">6-digit SMS code</label><input id="customerOtp" name="code" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9۰-۹٠-٩]{6}" maxlength="6" required><button class="account-button" type="submit">Verify and sign in</button><button class="account-text-button" id="resendOtp" type="button" disabled>Resend code</button><button class="account-text-button" id="changePhone" type="button">Change number</button></form>
+      </div>
+      <div id="customerView" hidden><div class="account-topline"><p id="phoneHint"></p><button class="account-text-button" id="logoutButton" type="button">Sign out</button></div>
+        <section class="profile-section" aria-labelledby="profileHeading"><div class="profile-heading"><div><p class="account-kicker">YOUR ACCOUNT</p><h2 id="profileHeading">Profile details</h2></div><div class="profile-avatar" id="profileAvatar"><img id="profilePhoto" alt="Profile photo" hidden></div></div>
+          <form id="profileForm" class="account-form" enctype="multipart/form-data"><label for="customerName">Full name</label><input id="customerName" name="full_name" type="text" autocomplete="name" maxlength="120" required><label for="customerPhoto">Profile photo (optional)</label><input id="customerPhoto" name="photo" type="file" accept="image/jpeg,image/png,image/webp"><small>JPG, PNG or WebP; up to 1.5 MB. The photo is private and only shown after you sign in.</small><label class="account-consent"><input type="checkbox" name="consent" required><span>I agree to store my name and optional photo. Active database data is deleted after 90 days; private backups may remain for up to 7 additional days.</span></label><button class="account-button" type="submit">Save profile</button></form>
+        </section>
+        <section class="orders-section" aria-labelledby="ordersHeading"><div class="profile-heading"><div><p class="account-kicker">SUBMITTED REQUESTS</p><h2 id="ordersHeading">Order status</h2></div></div><div id="ordersList" class="orders-list"></div></section><a class="account-new-request" href="/en/#booking">Send a new request <span>→</span></a>
+      </div>
+      <p class="account-feedback" id="accountFeedback" role="status" aria-live="polite"></p>
+    </section>
+    <p class="account-footnote">Sign-in uses an SMS one-time code. Request status is updated after the studio reviews it.</p>
+  </main>
+  <script src="/assets/site-locale.js?v=20261014-1" defer></script><script src="/assets/customer-account.js?v=20261014-1" defer></script>
+</body>
+</html>

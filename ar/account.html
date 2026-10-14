@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex, nofollow">
+  <meta name="description" content="دخول آمن لعملاء لنا بحري وإكمال الملف الشخصي ومتابعة حالة طلب الحجز.">
+  <title>دخول العملاء ومتابعة الطلب | لنا بحري</title>
+  <link rel="icon" href="/assets/brand/logo-lb-optimized.png"><link rel="stylesheet" href="/style.css?v=20261012-1"><link rel="stylesheet" href="/assets/site-locale.css"><link rel="stylesheet" href="/assets/customer-account.css?v=20261014-1">
+</head>
+<body class="customer-account-page">
+  <header class="site-header" id="top"><a class="brand" href="/ar/" aria-label="الصفحة الرئيسية لنا بحري"><span class="brand-mark brand-logo"><img src="/assets/brand/logo-lb-optimized.png" alt=""></span><span class="brand-copy"><b>LENA BAHRI</b><small>PMU MASTER ARTIST</small></span></a><nav class="main-nav" aria-label="التنقل الرئيسي"><a href="/ar/">الرئيسية</a><a href="/ar/services.html">الخدمات والأسعار</a><a href="/ar/portfolio.html">الأعمال</a><a href="/ar/account.html" data-customer-account-link>دخول العملاء</a></nav><a class="header-cta" href="/ar/#booking">إرسال طلب <span>←</span></a></header>
+  <main class="account-layout">
+    <section class="account-intro"><p class="account-kicker">الملف الشخصي ومتابعة الطلب</p><h1>حساب العميل</h1><p>سجّلي الدخول برقم الهاتف المستخدم في الطلب، وأكملي بياناتك وتابعي حالة الطلبات.</p></section>
+    <section class="account-panel" aria-live="polite">
+      <div id="loginView"><form id="phoneForm" class="account-form"><label for="customerPhone">رقم الهاتف المحمول</label><input id="customerPhone" name="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="مثال: 0917 123 4567" required><button class="account-button" type="submit">إرسال رمز لمرة واحدة</button></form>
+        <form id="otpForm" class="account-form" hidden><label for="customerOtp">رمز الرسالة النصية المكوّن من ٦ أرقام</label><input id="customerOtp" name="code" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9۰-۹٠-٩]{6}" maxlength="6" required><button class="account-button" type="submit">تأكيد الرمز والدخول</button><button class="account-text-button" id="resendOtp" type="button" disabled>إعادة إرسال الرمز</button><button class="account-text-button" id="changePhone" type="button">تغيير الرقم</button></form>
+      </div>
+      <div id="customerView" hidden><div class="account-topline"><p id="phoneHint"></p><button class="account-text-button" id="logoutButton" type="button">تسجيل الخروج</button></div>
+        <section class="profile-section" aria-labelledby="profileHeading"><div class="profile-heading"><div><p class="account-kicker">حسابك</p><h2 id="profileHeading">بيانات الملف الشخصي</h2></div><div class="profile-avatar" id="profileAvatar"><img id="profilePhoto" alt="صورة الملف الشخصي" hidden></div></div>
+          <form id="profileForm" class="account-form" enctype="multipart/form-data"><label for="customerName">الاسم الكامل</label><input id="customerName" name="full_name" type="text" autocomplete="name" maxlength="120" required><label for="customerPhoto">صورة الملف الشخصي (اختيارية)</label><input id="customerPhoto" name="photo" type="file" accept="image/jpeg,image/png,image/webp"><small>JPG أو PNG أو WebP؛ بحد أقصى ١٫٥ ميغابايت. الصورة خاصة وتظهر بعد تسجيل الدخول فقط.</small><label class="account-consent"><input type="checkbox" name="consent" required><span>أوافق على حفظ اسمي وصورتي الاختيارية. تُحذف البيانات من قاعدة البيانات النشطة بعد ٩٠ يوماً؛ وقد تبقى النسخ الاحتياطية الخاصة حتى ٧ أيام إضافية.</span></label><button class="account-button" type="submit">حفظ البيانات</button></form>
+        </section>
+        <section class="orders-section" aria-labelledby="ordersHeading"><div class="profile-heading"><div><p class="account-kicker">الطلبات المسجلة</p><h2 id="ordersHeading">حالة الطلبات</h2></div></div><div id="ordersList" class="orders-list"></div></section><a class="account-new-request" href="/ar/#booking">إرسال طلب جديد <span>←</span></a>
+      </div>
+      <p class="account-feedback" id="accountFeedback" role="status" aria-live="polite"></p>
+    </section>
+    <p class="account-footnote">يتم تسجيل الدخول برمز لمرة واحدة عبر الرسائل النصية. تُعرض حالة الطلب بعد مراجعته وتحديثها من قبل الاستوديو.</p>
+  </main>
+  <script src="/assets/site-locale.js?v=20261014-1" defer></script><script src="/assets/customer-account.js?v=20261014-1" defer></script>
+</body>
+</html>

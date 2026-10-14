@@ -181,3 +181,20 @@ window.LENA_GALLERY = {
     subtitle: "رویداد تخصصی و ارتباطات بین‌المللی"
   }))
 };
+
+const normalizeGalleryAssets = (entry) => {
+  if (Array.isArray(entry)) {
+    entry.forEach(normalizeGalleryAssets);
+    return;
+  }
+  if (!entry || typeof entry !== "object") return;
+  for (const [key, value] of Object.entries(entry)) {
+    if (["image", "detailImage", "video", "poster"].includes(key) && typeof value === "string" && value.startsWith("assets/")) {
+      entry[key] = `/${value}`;
+    } else {
+      normalizeGalleryAssets(value);
+    }
+  }
+};
+
+normalizeGalleryAssets(window.LENA_GALLERY);

@@ -33,3 +33,8 @@ window.LENA_VIDEO_LIBRARY = [
     tags: ["بن مژه", "خط چشم دائم", "آرایش دائم چشم", "شیراز"]
   }
 ];
+
+window.LENA_VIDEO_LIBRARY.forEach((item) => {
+  item.video = item.video.startsWith("/") ? item.video : `/${item.video}`;
+  item.poster = item.poster.startsWith("/") ? item.poster : `/${item.poster}`;
+});

@@ -12,7 +12,7 @@
   const pathLocale = window.location.pathname.match(/^\/(en|ar|zh)(?=\/|$)/)?.[1];
   const locale = pathLocale || "fa";
   const rightToLeft = locale === "fa" || locale === "ar";
-  const sourcePath = window.location.pathname.replace(/^\/(en|ar|zh)(?=\/|$)/, "/") || "/";
+  const sourcePath = window.location.pathname.replace(/^\/(en|ar|zh)(?=\/|$)/, "") || "/";
   const catalogReady = locale === "fa"
     ? Promise.resolve({ common: {}, pages: {} })
     : fetch(`/locales/${locale}.json`, { credentials: "same-origin" })
@@ -56,7 +56,7 @@
       if (target.origin !== window.location.origin || target.hash && !target.pathname) return;
       const isPage = target.pathname === "/" || target.pathname.endsWith("/") || target.pathname.endsWith(".html");
       if (!isPage) return;
-      const unlocalized = target.pathname.replace(/^\/(en|ar|zh)(?=\/|$)/, "/") || "/";
+      const unlocalized = target.pathname.replace(/^\/(en|ar|zh)(?=\/|$)/, "") || "/";
       target.pathname = locale === "fa"
         ? unlocalized
         : `/${locale}${unlocalized === "/" ? "/" : unlocalized}`;

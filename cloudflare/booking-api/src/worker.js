@@ -17,6 +17,9 @@ const STATUSES = new Set(["pending", "contacted", "confirmed", "completed", "can
 const MAX_PHOTO_BYTES = 1_500_000;
 const BOOKING_RETENTION_SECONDS = 90 * 24 * 60 * 60;
 const SESSION_SECONDS = 12 * 60 * 60;
+const CUSTOMER_SESSION_SECONDS = 7 * 24 * 60 * 60;
+const CUSTOMER_OTP_SECONDS = 5 * 60;
+const CUSTOMER_OTP_ATTEMPTS = 5;
 
 function json(data, status = 200, extraHeaders = {}) {
   return new Response(JSON.stringify(data), {
@@ -105,12 +108,207 @@ async function authenticated(request, env) {
 
 async function rateLimit(request, env, scope, windowSeconds, limit) {
   const address = request.headers.get("CF-Connecting-IP") || "unknown";
-  const ipHash = base64Url(await digest(`${env.RATE_LIMIT_SALT || env.SESSION_SECRET || "lena-rate-limit"}:${scope}:${address}`));
+  return rateLimitIdentity(env, scope, address, windowSeconds, limit);
+}
+
+async function rateLimitIdentity(env, scope, identity, windowSeconds, limit) {
+  const ipHash = base64Url(await digest(`${env.RATE_LIMIT_SALT || env.SESSION_SECRET || "lena-rate-limit"}:${scope}:${identity}`));
   const windowStart = Math.floor(Date.now() / (windowSeconds * 1000)) * windowSeconds;
   const result = await env.DB.prepare(
     "INSERT INTO rate_limits (scope, ip_hash, window_start, count) VALUES (?, ?, ?, 1) ON CONFLICT(scope, ip_hash, window_start) DO UPDATE SET count = count + 1 WHERE count < ?"
   ).bind(scope, ipHash, windowStart, limit).run();
   return result.meta?.changes !== 0;
+}
+
+function asciiDigits(value) {
+  return String(value ?? "").replace(/[۰-۹٠-٩]/g, (digit) => String("۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩".indexOf(digit) % 10));
+}
+
+function normalizeIranianMobile(value) {
+  let digits = asciiDigits(value).replace(/\D/g, "");
+  if (digits.startsWith("0098")) digits = digits.slice(4);
+  else if (digits.startsWith("98")) digits = digits.slice(2);
+  if (digits.length === 10 && digits.startsWith("9")) digits = `0${digits}`;
+  return /^09\d{9}$/.test(digits) ? digits : "";
+}
+
+async function sendCustomerOtp(env, mobile, code) {
+  const templateId = String(env.SMSIR_OTP_TEMPLATE_ID || "").trim();
+  if (!env.SMSIR_API_KEY || !/^\d+$/.test(templateId)) return false;
+  try {
+    const response = await fetch("https://api.sms.ir/v1/send/verify", {
+      method: "POST",
+      headers: {
+        "X-API-KEY": env.SMSIR_API_KEY,
+        "Content-Type": "application/json",
+        Accept: "application/json"
+      },
+      body: JSON.stringify({
+        Mobile: mobile,
+        TemplateId: Number(templateId),
+        Parameters: [{ Name: env.SMSIR_OTP_PARAMETER_NAME || "CODE", Value: code }]
+      }),
+      signal: AbortSignal.timeout(12_000)
+    });
+    const result = await response.json().catch(() => ({}));
+    return response.ok && Number(result.Status ?? result.status) === 1;
+  } catch {
+    return false;
+  }
+}
+
+async function requestCustomerOtp(request, env) {
+  if (!assertSameOrigin(request)) return json({ error: "مبدأ درخواست معتبر نیست." }, 403);
+  if (!env.DB || !env.SESSION_SECRET || !env.RATE_LIMIT_SALT || !env.SMSIR_API_KEY || !/^\d+$/.test(String(env.SMSIR_OTP_TEMPLATE_ID || ""))) {
+    return json({ error: "ورود پیامکی موقتاً آماده نیست." }, 503);
+  }
+  let data;
+  try { data = await request.json(); } catch { return json({ error: "درخواست نامعتبر است." }, 400); }
+  const mobile = normalizeIranianMobile(data.phone);
+  if (!mobile) return json({ error: "شمارهٔ همراه معتبر وارد کنید." }, 400);
+  if (!await rateLimit(request, env, "customer-otp-ip", 900, 5)
+    || !await rateLimitIdentity(env, "customer-otp-phone-minute", mobile, 60, 1)
+    || !await rateLimitIdentity(env, "customer-otp-phone-hour", mobile, 3600, 5)) {
+    return json({ error: "درخواست کد زیاد است؛ کمی بعد دوباره تلاش کنید." }, 429);
+  }
+
+  const code = String(crypto.getRandomValues(new Uint32Array(1))[0] % 1_000_000).padStart(6, "0");
+  const now = Math.floor(Date.now() / 1000);
+  const expiresAt = now + CUSTOMER_OTP_SECONDS;
+  const codeHash = base64Url(await hmac(env.SESSION_SECRET, `customer-otp.${mobile}.${code}.${expiresAt}`));
+  await env.DB.prepare(
+    "INSERT INTO customer_otp_codes (phone, code_hash, expires_at, attempts, created_at) VALUES (?, ?, ?, 0, ?) ON CONFLICT(phone) DO UPDATE SET code_hash = excluded.code_hash, expires_at = excluded.expires_at, attempts = 0, created_at = excluded.created_at"
+  ).bind(mobile, codeHash, expiresAt, now).run();
+
+  if (!await sendCustomerOtp(env, mobile, code)) return json({ error: "ارسال کد انجام نشد؛ کمی بعد دوباره تلاش کنید." }, 502);
+  return json({ ok: true, expiresIn: CUSTOMER_OTP_SECONDS });
+}
+
+async function customerSessionPhone(request, env) {
+  if (!env.SESSION_SECRET) return "";
+  const parts = cookieValue(request, "lena_customer_session").split(".");
+  if (parts.length !== 4) return "";
+  const [expiresText, phoneText, nonce, signatureText] = parts;
+  const expires = Number(expiresText);
+  if (!Number.isSafeInteger(expires) || expires <= Math.floor(Date.now() / 1000) || expires > Math.floor(Date.now() / 1000) + CUSTOMER_SESSION_SECONDS + 60) return "";
+  try {
+    const phone = new TextDecoder().decode(decodeBase64Url(phoneText));
+    if (!normalizeIranianMobile(phone)) return "";
+    const expected = await hmac(env.SESSION_SECRET, `${expiresText}.${phone}.${nonce}`);
+    return constantTimeEqual(expected, decodeBase64Url(signatureText)) ? phone : "";
+  } catch {
+    return "";
+  }
+}
+
+async function verifyCustomerOtp(request, env) {
+  if (!assertSameOrigin(request)) return json({ error: "مبدأ درخواست معتبر نیست." }, 403);
+  if (!env.DB || !env.SESSION_SECRET) return json({ error: "ورود پیامکی موقتاً آماده نیست." }, 503);
+  let data;
+  try { data = await request.json(); } catch { return json({ error: "درخواست نامعتبر است." }, 400); }
+  const mobile = normalizeIranianMobile(data.phone);
+  const code = asciiDigits(data.code).replace(/\D/g, "");
+  if (!mobile || !/^\d{6}$/.test(code)) return json({ error: "شمارهٔ همراه یا کد واردشده معتبر نیست." }, 400);
+  if (!await rateLimit(request, env, "customer-otp-verify-ip", 900, 12)
+    || !await rateLimitIdentity(env, "customer-otp-verify-phone", mobile, 900, 8)) {
+    return json({ error: "تلاش‌های زیادی انجام شده؛ کمی بعد دوباره تلاش کنید." }, 429);
+  }
+
+  const stored = await env.DB.prepare("SELECT code_hash, expires_at, attempts FROM customer_otp_codes WHERE phone = ?").bind(mobile).first();
+  const now = Math.floor(Date.now() / 1000);
+  if (!stored || stored.expires_at <= now || stored.attempts >= CUSTOMER_OTP_ATTEMPTS) {
+    return json({ error: "کد معتبر نیست یا منقضی شده؛ کد تازه بگیرید." }, 401);
+  }
+  const expectedHash = await hmac(env.SESSION_SECRET, `customer-otp.${mobile}.${code}.${stored.expires_at}`);
+  let matches = false;
+  try { matches = constantTimeEqual(expectedHash, decodeBase64Url(stored.code_hash)); } catch {}
+  if (!matches) {
+    await env.DB.prepare("UPDATE customer_otp_codes SET attempts = attempts + 1 WHERE phone = ?").bind(mobile).run();
+    return json({ error: "کد واردشده درست نیست." }, 401);
+  }
+
+  await env.DB.prepare("DELETE FROM customer_otp_codes WHERE phone = ?").bind(mobile).run();
+  const expires = now + CUSTOMER_SESSION_SECONDS;
+  const nonce = crypto.randomUUID();
+  const phoneToken = base64Url(new TextEncoder().encode(mobile));
+  const signature = base64Url(await hmac(env.SESSION_SECRET, `${expires}.${mobile}.${nonce}`));
+  const cookie = `lena_customer_session=${expires}.${phoneToken}.${nonce}.${signature}; Path=/api/customer; Max-Age=${CUSTOMER_SESSION_SECONDS}; HttpOnly; Secure; SameSite=Strict`;
+  return json({ ok: true }, 200, { "Set-Cookie": cookie });
+}
+
+async function customerProfile(request, env) {
+  const mobile = await customerSessionPhone(request, env);
+  if (!mobile) return json({ error: "برای مشاهدهٔ حساب وارد شوید." }, 401);
+  const profile = await env.DB.prepare("SELECT full_name, photo_data IS NOT NULL AS has_photo FROM customer_profiles WHERE phone = ?").bind(mobile).first();
+  const phoneKey = mobile.slice(-10);
+  const normalizedPhoneSql = "REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(phone, '+', ''), ' ', ''), '-', ''), '(', ''), ')', ''), '.', ''), '/', ''), CHAR(9), ''), CHAR(10), ''), CHAR(13), '')";
+  const orders = await env.DB.prepare(
+    `SELECT id, service, payment_method, status, created_at FROM bookings WHERE SUBSTR(${normalizedPhoneSql}, -10) = ? ORDER BY created_at DESC LIMIT 100`
+  ).bind(phoneKey).all();
+  return json({
+    profile: { fullName: profile?.full_name || "", hasPhoto: Boolean(profile?.has_photo) },
+    phoneHint: `${mobile.slice(0, 4)}•••${mobile.slice(-4)}`,
+    orders: orders.results || []
+  });
+}
+
+async function updateCustomerProfile(request, env) {
+  if (!assertSameOrigin(request)) return json({ error: "مبدأ درخواست معتبر نیست." }, 403);
+  const mobile = await customerSessionPhone(request, env);
+  if (!mobile) return json({ error: "برای ذخیرهٔ اطلاعات وارد شوید." }, 401);
+  if (!request.headers.get("Content-Type")?.toLowerCase().startsWith("multipart/form-data;")) return json({ error: "قالب فرم معتبر نیست." }, 415);
+  if (Number(request.headers.get("Content-Length")) > MAX_PHOTO_BYTES + 100_000) return json({ error: "حجم عکس بیشتر از حد مجاز است." }, 413);
+  let form;
+  try { form = await request.formData(); } catch { return json({ error: "فرم قابل خواندن نیست." }, 400); }
+  const fullName = clean(form.get("full_name"), 120);
+  const consent = form.get("consent") === "on";
+  const photo = form.get("photo");
+  if (fullName.length < 2 || !consent) return json({ error: "نام و رضایت‌نامهٔ ذخیره‌سازی را بررسی کنید." }, 400);
+  if (photo instanceof File && photo.size > MAX_PHOTO_BYTES) return json({ error: "حجم عکس باید حداکثر ۱٫۵ مگابایت باشد." }, 413);
+  const allowedTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
+  if (photo instanceof File && photo.size > 0 && !allowedTypes.has(photo.type)) return json({ error: "فقط عکس JPG، PNG یا WebP پذیرفته می‌شود." }, 415);
+  if (photo instanceof File && photo.size > 0) {
+    const signature = new Uint8Array(await photo.slice(0, 12).arrayBuffer());
+    const validSignature = photo.type === "image/jpeg"
+      ? signature[0] === 0xff && signature[1] === 0xd8 && signature[2] === 0xff
+      : photo.type === "image/png"
+        ? [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a].every((byte, index) => signature[index] === byte)
+        : signature[0] === 0x52 && signature[1] === 0x49 && signature[2] === 0x46 && signature[3] === 0x46 && signature[8] === 0x57 && signature[9] === 0x45 && signature[10] === 0x42 && signature[11] === 0x50;
+    if (!validSignature) return json({ error: "محتوای فایل با نوع عکس انتخاب‌شده سازگار نیست." }, 415);
+  }
+  const now = Math.floor(Date.now() / 1000);
+  const photoData = photo instanceof File && photo.size > 0 ? await photo.arrayBuffer() : null;
+  const photoContentType = photoData ? photo.type : null;
+  await env.DB.prepare(
+    "INSERT INTO customer_profiles (phone, full_name, photo_data, photo_content_type, created_at, updated_at, consent_at) VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT(phone) DO UPDATE SET full_name = excluded.full_name, photo_data = COALESCE(excluded.photo_data, customer_profiles.photo_data), photo_content_type = COALESCE(excluded.photo_content_type, customer_profiles.photo_content_type), updated_at = excluded.updated_at, consent_at = excluded.consent_at"
+  ).bind(mobile, fullName, photoData, photoContentType, now, now, now).run();
+  return json({ ok: true, fullName, hasPhoto: Boolean(photoData) || Boolean((await env.DB.prepare("SELECT photo_data IS NOT NULL AS has_photo FROM customer_profiles WHERE phone = ?").bind(mobile).first())?.has_photo) });
+}
+
+async function customerPhoto(request, env) {
+  const mobile = await customerSessionPhone(request, env);
+  if (!mobile) return json({ error: "برای مشاهدهٔ عکس وارد شوید." }, 401);
+  const row = await env.DB.prepare("SELECT photo_data, photo_content_type FROM customer_profiles WHERE phone = ?").bind(mobile).first();
+  const imageBytes = row?.photo_data instanceof ArrayBuffer
+    ? new Uint8Array(row.photo_data)
+    : row?.photo_data ? Uint8Array.from(row.photo_data) : null;
+  if (!imageBytes?.byteLength) return json({ error: "عکسی برای حساب ثبت نشده است." }, 404);
+  return new Response(imageBytes, {
+    headers: {
+      "Content-Type": row.photo_content_type || "application/octet-stream",
+      "Content-Length": String(imageBytes.byteLength),
+      "Cache-Control": "private, no-store",
+      "Content-Disposition": "inline",
+      "X-Content-Type-Options": "nosniff",
+      "Referrer-Policy": "no-referrer",
+      "Cross-Origin-Resource-Policy": "same-origin"
+    }
+  });
+}
+
+async function logoutCustomer(request) {
+  if (!assertSameOrigin(request)) return json({ error: "مبدأ درخواست معتبر نیست." }, 403);
+  return json({ ok: true }, 200, { "Set-Cookie": "lena_customer_session=; Path=/api/customer; Max-Age=0; HttpOnly; Secure; SameSite=Strict" });
 }
 
 async function login(request, env) {
@@ -234,9 +432,12 @@ async function bookingPhoto(request, env, id) {
 }
 
 async function cleanup(env) {
-  const cutoff = Math.floor(Date.now() / 1000) - BOOKING_RETENTION_SECONDS;
+  const now = Math.floor(Date.now() / 1000);
+  const cutoff = now - BOOKING_RETENTION_SECONDS;
   await env.DB.prepare("DELETE FROM bookings WHERE created_at < ?").bind(cutoff).run();
-  await env.DB.prepare("DELETE FROM rate_limits WHERE window_start < ?").bind(Math.floor(Date.now() / 1000) - 7200).run();
+  await env.DB.prepare("DELETE FROM customer_profiles WHERE created_at < ?").bind(cutoff).run();
+  await env.DB.prepare("DELETE FROM customer_otp_codes WHERE expires_at < ?").bind(now).run();
+  await env.DB.prepare("DELETE FROM rate_limits WHERE window_start < ?").bind(now - 7200).run();
 }
 
 export default {
@@ -245,6 +446,12 @@ export default {
     const path = url.pathname;
     if (path === "/api/health" && request.method === "GET") return json({ ok: true });
     if (path === "/api/bookings" && request.method === "POST") return createBooking(request, env);
+    if (path === "/api/customer/otp/request" && request.method === "POST") return requestCustomerOtp(request, env);
+    if (path === "/api/customer/otp/verify" && request.method === "POST") return verifyCustomerOtp(request, env);
+    if (path === "/api/customer/me" && request.method === "GET") return customerProfile(request, env);
+    if (path === "/api/customer/profile" && request.method === "POST") return updateCustomerProfile(request, env);
+    if (path === "/api/customer/photo" && request.method === "GET") return customerPhoto(request, env);
+    if (path === "/api/customer/logout" && request.method === "POST") return logoutCustomer(request);
     if (path === "/api/admin/login" && request.method === "POST") return login(request, env);
     if (path === "/api/admin/logout" && request.method === "POST") {
       if (!assertSameOrigin(request)) return json({ error: "مبدأ درخواست معتبر نیست." }, 403);

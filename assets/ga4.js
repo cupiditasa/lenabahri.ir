@@ -1,7 +1,7 @@
 (() => {
   if (!document.querySelector('script[data-lena-locale-loader]')) {
     const localeLoader = document.createElement("script");
-    localeLoader.src = "/assets/site-locale.js";
+    localeLoader.src = "/assets/site-locale.js?v=20261014-1";
     localeLoader.defer = true;
     localeLoader.dataset.lenaLocaleLoader = "true";
     document.head.append(localeLoader);

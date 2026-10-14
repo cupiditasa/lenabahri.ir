@@ -36,6 +36,48 @@ class MockStatement {
       booking.status = status;
       return { meta: { changes: 1 } };
     }
+    if (this.sql.startsWith("INSERT INTO customer_otp_codes")) {
+      const [phone, code_hash, expires_at, created_at] = this.values;
+      db.otpCodes.set(phone, { phone, code_hash, expires_at, attempts: 0, created_at });
+      return { meta: { changes: 1 } };
+    }
+    if (this.sql.startsWith("UPDATE customer_otp_codes SET attempts")) {
+      const record = db.otpCodes.get(this.values[0]);
+      if (!record) return { meta: { changes: 0 } };
+      record.attempts += 1;
+      return { meta: { changes: 1 } };
+    }
+    if (this.sql.startsWith("DELETE FROM customer_otp_codes WHERE phone")) {
+      return { meta: { changes: Number(db.otpCodes.delete(this.values[0])) } };
+    }
+    if (this.sql.startsWith("INSERT INTO customer_profiles")) {
+      const [phone, full_name, photo_data, photo_content_type, created_at, updated_at, consent_at] = this.values;
+      const previous = db.profiles.get(phone);
+      db.profiles.set(phone, {
+        phone,
+        full_name,
+        photo_data: photo_data || previous?.photo_data || null,
+        photo_content_type: photo_content_type || previous?.photo_content_type || null,
+        created_at: previous?.created_at || created_at,
+        updated_at,
+        consent_at
+      });
+      return { meta: { changes: 1 } };
+    }
+    if (this.sql.startsWith("DELETE FROM customer_profiles WHERE created_at")) {
+      let changes = 0;
+      for (const [phone, profile] of db.profiles) {
+        if (profile.created_at < this.values[0]) changes += Number(db.profiles.delete(phone));
+      }
+      return { meta: { changes } };
+    }
+    if (this.sql.startsWith("DELETE FROM customer_otp_codes WHERE expires_at")) {
+      let changes = 0;
+      for (const [phone, record] of db.otpCodes) {
+        if (record.expires_at < this.values[0]) changes += Number(db.otpCodes.delete(phone));
+      }
+      return { meta: { changes } };
+    }
     if (this.sql.startsWith("DELETE FROM bookings WHERE id")) {
       return { meta: { changes: Number(db.bookings.delete(this.values[0])) } };
     }
@@ -58,6 +100,14 @@ class MockStatement {
       for (const booking of this.database.bookings.values()) counts.set(booking.status, (counts.get(booking.status) || 0) + 1);
       return { results: [...counts].map(([status, count]) => ({ status, count })) };
     }
+    if (this.sql.startsWith("SELECT id, service, payment_method, status, created_at FROM bookings WHERE SUBSTR")) {
+      const phoneKey = this.values[0];
+      return { results: [...this.database.bookings.values()]
+        .filter((booking) => booking.phone.replace(/\D/g, "").slice(-10) === phoneKey)
+        .sort((left, right) => right.created_at - left.created_at)
+        .slice(0, 100)
+        .map(({ id, service, payment_method, status, created_at }) => ({ id, service, payment_method, status, created_at })) };
+    }
     const filterStatus = this.sql.includes("status = ?") ? this.values[0] : "";
     const results = [...this.database.bookings.values()]
       .filter((booking) => !filterStatus || booking.status === filterStatus)
@@ -67,6 +117,21 @@ class MockStatement {
     return { results };
   }
   async first() {
+    if (this.sql.startsWith("SELECT code_hash, expires_at, attempts FROM customer_otp_codes")) {
+      return this.database.otpCodes.get(this.values[0]) || null;
+    }
+    if (this.sql.startsWith("SELECT full_name, photo_data IS NOT NULL AS has_photo FROM customer_profiles")) {
+      const profile = this.database.profiles.get(this.values[0]);
+      return profile ? { full_name: profile.full_name, has_photo: Boolean(profile.photo_data) } : null;
+    }
+    if (this.sql.startsWith("SELECT photo_data IS NOT NULL AS has_photo FROM customer_profiles")) {
+      const profile = this.database.profiles.get(this.values[0]);
+      return profile ? { has_photo: Boolean(profile.photo_data) } : null;
+    }
+    if (this.sql.startsWith("SELECT photo_data, photo_content_type FROM customer_profiles")) {
+      const profile = this.database.profiles.get(this.values[0]);
+      return profile ? { photo_data: profile.photo_data, photo_content_type: profile.photo_content_type } : null;
+    }
     if (this.sql.startsWith("SELECT photo_data, photo_content_type FROM bookings")) {
       const booking = this.database.bookings.get(this.values[0]);
       return booking ? {
@@ -79,7 +144,7 @@ class MockStatement {
 }
 
 class MockDatabase {
-  constructor() { this.bookings = new Map(); this.limits = new Map(); }
+  constructor() { this.bookings = new Map(); this.limits = new Map(); this.otpCodes = new Map(); this.profiles = new Map(); }
   prepare(sql) { return new MockStatement(this, sql); }
 }
 
@@ -179,11 +244,16 @@ test("booking persists a photo privately and protects admin operations", async (
 test("retention cleanup removes expired database rows and their stored photos", async () => {
   const env = { DB: new MockDatabase() };
   const id = "expired-booking";
-  env.DB.bookings.set(id, { id, photo_data: new ArrayBuffer(12), created_at: Math.floor(Date.now() / 1000) - 91 * day });
+  const expiredAt = Math.floor(Date.now() / 1000) - 91 * day;
+  env.DB.bookings.set(id, { id, photo_data: new ArrayBuffer(12), created_at: expiredAt });
+  env.DB.profiles.set("09120000000", { phone: "09120000000", created_at: expiredAt });
+  env.DB.otpCodes.set("09121111111", { phone: "09121111111", expires_at: Math.floor(Date.now() / 1000) - 1 });
   const tasks = [];
   await worker.scheduled({}, env, { waitUntil: (task) => tasks.push(task) });
   await Promise.all(tasks);
   assert.equal(env.DB.bookings.has(id), false);
+  assert.equal(env.DB.profiles.has("09120000000"), false);
+  assert.equal(env.DB.otpCodes.has("09121111111"), false);
 });
 
 test("booking rejects photos larger than the D1-safe upload cap", async () => {
@@ -197,4 +267,123 @@ test("booking rejects photos larger than the D1-safe upload cap", async () => {
   }), env);
   assert.equal(response.status, 413);
   assert.equal(env.DB.bookings.size, 0);
+});
+
+test("customer OTP login only returns that phone's orders and keeps profiles private", async () => {
+  const env = {
+    DB: new MockDatabase(),
+    RATE_LIMIT_SALT: "test",
+    ADMIN_PASSWORD_HASH: "test-hash",
+    SESSION_SECRET: "test-session-signing-key-not-for-production",
+    SMSIR_API_KEY: "test-only-key-not-for-production-000000000000000000000000000000000000",
+    SMSIR_OTP_TEMPLATE_ID: "123456",
+    SMSIR_OTP_PARAMETER_NAME: "CODE"
+  };
+  const bookingPayload = bookingForm({ photo: false });
+  bookingPayload.set("payment_method", "consult");
+  const bookingResponse = await worker.fetch(makeRequest("/api/bookings", {
+    method: "POST",
+    body: bookingPayload,
+    headers: { Origin: "https://lenabahri.ir", "CF-Connecting-IP": "192.0.2.20" }
+  }), env);
+  assert.equal(bookingResponse.status, 201);
+  const storedBooking = [...env.DB.bookings.values()][0];
+  storedBooking.status = "confirmed";
+
+  const originalFetch = globalThis.fetch;
+  let issuedCode = "";
+  try {
+    globalThis.fetch = async (url, options) => {
+      assert.equal(url, "https://api.sms.ir/v1/send/verify");
+      assert.equal(options.headers["X-API-KEY"], env.SMSIR_API_KEY);
+      const payload = JSON.parse(options.body);
+      assert.match(payload.Mobile, /^09\d{9}$/);
+      assert.equal(payload.TemplateId, 123456);
+      assert.equal(payload.Parameters[0].Name, "CODE");
+      issuedCode = payload.Parameters[0].Value;
+      return Response.json({ Status: 1, Data: { MessageId: 1 } });
+    };
+
+    const requested = await worker.fetch(makeRequest("/api/customer/otp/request", {
+      method: "POST",
+      body: JSON.stringify({ phone: "۰۹۱۷۸۲۸۰۸۱۲" }),
+      headers: { Origin: "https://lenabahri.ir", "Content-Type": "application/json", "CF-Connecting-IP": "192.0.2.20" }
+    }), env);
+    assert.equal(requested.status, 200);
+    assert.equal((await requested.json()).ok, true);
+    assert.match(issuedCode, /^\d{6}$/);
+
+    const verified = await worker.fetch(makeRequest("/api/customer/otp/verify", {
+      method: "POST",
+      body: JSON.stringify({ phone: "09178280812", code: issuedCode }),
+      headers: { Origin: "https://lenabahri.ir", "Content-Type": "application/json", "CF-Connecting-IP": "192.0.2.20" }
+    }), env);
+    assert.equal(verified.status, 200);
+    const setCookie = verified.headers.get("set-cookie");
+    assert.match(setCookie, /HttpOnly/);
+    const cookie = setCookie.split(";")[0];
+
+    const account = await worker.fetch(makeRequest("/api/customer/me", { headers: { Cookie: cookie } }), env);
+    assert.equal(account.status, 200);
+    const accountData = await account.json();
+    assert.equal(accountData.orders.length, 1);
+    assert.equal(accountData.orders[0].status, "confirmed");
+    assert.equal("message" in accountData.orders[0], false);
+    assert.equal(JSON.stringify(accountData).includes("09178280812"), false);
+
+    const profileForm = new FormData();
+    profileForm.set("full_name", "سارا احمدی");
+    profileForm.set("consent", "on");
+    profileForm.set("photo", new File([Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0])], "profile.png", { type: "image/png" }));
+    const savedProfile = await worker.fetch(makeRequest("/api/customer/profile", {
+      method: "POST",
+      body: profileForm,
+      headers: { Cookie: cookie, Origin: "https://lenabahri.ir" }
+    }), env);
+    assert.equal(savedProfile.status, 200);
+    assert.equal((await savedProfile.json()).hasPhoto, true);
+    assert.equal(env.DB.profiles.get("09178280812").full_name, "سارا احمدی");
+
+    const photo = await worker.fetch(makeRequest("/api/customer/photo", { headers: { Cookie: cookie } }), env);
+    assert.equal(photo.status, 200);
+    assert.equal(photo.headers.get("cache-control"), "private, no-store");
+    assert.deepEqual(Array.from(new Uint8Array(await photo.arrayBuffer())), [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0]);
+
+    const otherRequest = await worker.fetch(makeRequest("/api/customer/otp/request", {
+      method: "POST",
+      body: JSON.stringify({ phone: "09170000000" }),
+      headers: { Origin: "https://lenabahri.ir", "Content-Type": "application/json", "CF-Connecting-IP": "192.0.2.21" }
+    }), env);
+    assert.equal(otherRequest.status, 200);
+    const otherCode = issuedCode;
+    const otherVerified = await worker.fetch(makeRequest("/api/customer/otp/verify", {
+      method: "POST",
+      body: JSON.stringify({ phone: "09170000000", code: otherCode }),
+      headers: { Origin: "https://lenabahri.ir", "Content-Type": "application/json", "CF-Connecting-IP": "192.0.2.21" }
+    }), env);
+    const otherCookie = otherVerified.headers.get("set-cookie").split(";")[0];
+    const otherAccount = await worker.fetch(makeRequest("/api/customer/me", { headers: { Cookie: otherCookie } }), env);
+    assert.deepEqual((await otherAccount.json()).orders, []);
+    const otherPhoto = await worker.fetch(makeRequest("/api/customer/photo", { headers: { Cookie: otherCookie } }), env);
+    assert.equal(otherPhoto.status, 404);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("customer OTP rejects cross-origin requests and unconfigured SMS delivery", async () => {
+  const env = { DB: new MockDatabase(), SESSION_SECRET: "test-session", RATE_LIMIT_SALT: "test" };
+  const foreign = await worker.fetch(makeRequest("/api/customer/otp/request", {
+    method: "POST",
+    body: JSON.stringify({ phone: "09178280812" }),
+    headers: { Origin: "https://attacker.invalid", "Content-Type": "application/json" }
+  }), env);
+  assert.equal(foreign.status, 403);
+  const unavailable = await worker.fetch(makeRequest("/api/customer/otp/request", {
+    method: "POST",
+    body: JSON.stringify({ phone: "09178280812" }),
+    headers: { Origin: "https://lenabahri.ir", "Content-Type": "application/json" }
+  }), env);
+  assert.equal(unavailable.status, 503);
+  assert.equal(env.DB.otpCodes.size, 0);
 });
