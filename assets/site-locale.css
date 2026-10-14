@@ -1,0 +1,38 @@
+.site-language {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+  margin-inline: 0.65rem;
+}
+
+.site-language select {
+  min-width: 104px;
+  min-height: 38px;
+  padding: 0.45rem 0.65rem;
+  border: 1px solid rgba(210, 177, 128, 0.42);
+  border-radius: 999px;
+  background: rgba(18, 16, 15, 0.92);
+  color: inherit;
+  font: inherit;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+
+.site-language select:focus-visible {
+  outline: 2px solid #e0b779;
+  outline-offset: 3px;
+}
+
+html[dir="ltr"] .site-language {
+  direction: ltr;
+}
+
+@media (max-width: 760px) {
+  .site-language {
+    margin: 0.55rem 0;
+  }
+
+  .site-language select {
+    min-height: 36px;
+  }
+}

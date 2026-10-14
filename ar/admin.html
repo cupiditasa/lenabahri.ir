@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=١">
+  <meta name="robots" content="noindex, nofollow, noarchive">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'self'; object-src 'none'; frame-ancestors 'none'">
+  <meta name="referrer" content="no-referrer">
+  <title>إدارة طلبات الحجز | لنا بحري</title>
+  <link rel="stylesheet" href="/admin.css">
+  <script src="admin.js" defer></script>
+<link rel="canonical" href="https://lenabahri.ir/ar/admin.html">
+  <link rel="alternate" hreflang="en" href="https://lenabahri.ir/en/admin.html">
+  <link rel="alternate" hreflang="ar" href="https://lenabahri.ir/ar/admin.html">
+  <link rel="alternate" hreflang="zh-CN" href="https://lenabahri.ir/zh/admin.html">
+  <link rel="alternate" hreflang="fa" href="https://lenabahri.ir/admin.html">
+  <link rel="alternate" hreflang="x-default" href="https://lenabahri.ir/admin.html">
+  <link rel="stylesheet" href="/assets/site-locale.css">
+</head>
+<body>
+  <main class="admin-shell">
+    <header class="admin-header">
+      <a class="admin-brand" href="/ar/"><span class="brand-mark">LB</span><span><b>LENA BAHRI</b><small>إدارة الطلبات</small></span></a>
+      <a class="back-link" href="/ar/">العودة إلى الموقع <span>←</span></a>
+    </header>
+
+    <section class="login-panel" id="loginPanel" aria-labelledby="loginTitle">
+      <p class="eyebrow">دخول آمن للمديرة</p>
+      <h1 id="loginTitle">لوحة الحجوزات</h1>
+      <p class="muted">سجّلي الدخول إلى حساب الإدارة لعرض الطلبات.</p>
+      <form id="loginForm" autocomplete="on">
+        <label>اسم المستخدم<input name="username" type="text" autocomplete="username" value="lena" required></label>
+        <label>كلمة المرور<input name="password" type="password" autocomplete="current-password" required></label>
+        <button class="primary-button" type="submit">دخول</button>
+      </form>
+      <p class="feedback" id="loginFeedback" role="status" aria-live="polite"></p>
+    </section>
+
+    <section class="dashboard" id="dashboard" hidden>
+      <div class="dashboard-title">
+        <div><p class="eyebrow">إدارة الاستوديو</p><h1>طلبات الحجز</h1><p class="muted">لا يمكن الاطلاع على البيانات والصور المرسلة إلا من قِبل المديرة.</p></div>
+        <button class="quiet-button" id="logoutButton" type="button">تسجيل الخروج بأمان</button>
+      </div>
+      <div class="summary" id="summary" aria-label="ملخص الطلبات"></div>
+      <div class="toolbar">
+        <label class="search-label"><span class="sr-only">بحث</span><input id="searchInput" type="search" placeholder="ابحثي بالاسم أو رقم الهاتف أو رقم المتابعة"></label>
+        <label class="filter-label"><span class="sr-only">تصفية حسب الحالة</span><select id="statusFilter"><option value="">كل الحالات</option><option value="pending">قيد الانتظار</option><option value="contacted">تم التواصل</option><option value="confirmed">تم التأكيد</option><option value="completed">مكتمل</option><option value="cancelled">ملغي</option></select></label>
+        <button class="quiet-button" id="refreshButton" type="button">تحديث</button>
+      </div>
+      <p class="feedback" id="dashboardFeedback" role="status" aria-live="polite"></p>
+      <div class="booking-list" id="bookingList"></div>
+    </section>
+    <footer>نظام الحجوزات الخاص بلنا بحري · تُحذف البيانات من قاعدة البيانات النشطة بعد ٩٠ يوماً، وقد تبقى في النسخ الاحتياطية الفنية لمدة تصل إلى ٧ أيام إضافية.</footer>
+  </main>
+<script src="/assets/site-locale.js" defer></script>
+</body>
+</html>

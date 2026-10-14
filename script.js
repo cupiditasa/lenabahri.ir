@@ -7,6 +7,78 @@ const paymentMethod = bookingForm?.querySelector('[name="payment_method"]');
 const bookingPhotoField = document.querySelector("#bookingPhotoField");
 const bookingPhotoInput = bookingPhotoField?.querySelector('input[type="file"]');
 const bookingFormStatus = document.querySelector("#bookingFormStatus");
+const siteLocale = (document.documentElement.lang || "fa").split("-")[0].toLowerCase();
+const bookingMessages = {
+  fa: {
+    photoSize: "حجم عکس باید حداکثر ۱٫۵ مگابایت باشد.",
+    photoType: "فقط عکس JPG، PNG یا WebP پذیرفته می‌شود.",
+    submitting: "در حال ثبت امن درخواست…",
+    failed: "ثبت درخواست انجام نشد.",
+    success: (reference) => `درخواست شما با کد پیگیری ${reference} در سایت ثبت شد و برای مدیر در پنل مدیریت قرار گرفت. این پیام تأیید ثبت درخواست است؛ هماهنگی نهایی پس از بررسی انجام می‌شود.`,
+    connection: "اتصال برقرار نشد؛ کمی بعد دوباره تلاش کنید.",
+    errors: {
+      400: "اطلاعات فرم را بررسی کنید و دوباره تلاش کنید.",
+      401: "نشست شما معتبر نیست؛ صفحه را تازه‌سازی کنید.",
+      403: "درخواست معتبر نیست؛ صفحه را تازه‌سازی کنید.",
+      413: "حجم عکس یا درخواست بیشتر از حد مجاز است.",
+      415: "فرمت عکس پشتیبانی نمی‌شود؛ JPG، PNG یا WebP انتخاب کنید.",
+      429: "درخواست‌های زیادی ارسال شده؛ کمی بعد دوباره تلاش کنید.",
+      503: "سامانه رزرو موقتاً آماده نیست؛ کمی بعد دوباره تلاش کنید."
+    }
+  },
+  en: {
+    photoSize: "The photo must be no larger than 1.5 MB.",
+    photoType: "Please upload a JPG, PNG, or WebP image.",
+    submitting: "Submitting your request securely…",
+    failed: "We could not submit your request.",
+    success: (reference) => `Your request was submitted to the website and is available to the manager in the admin panel. Reference: ${reference}. This confirms receipt; final coordination follows review.`,
+    connection: "Could not connect. Please try again shortly.",
+    errors: {
+      400: "Please check the form details and try again.",
+      401: "Your session is invalid. Refresh the page and try again.",
+      403: "The request could not be verified. Refresh the page and try again.",
+      413: "The photo or request exceeds the allowed size.",
+      415: "Unsupported photo format. Choose JPG, PNG, or WebP.",
+      429: "Too many requests. Please try again shortly.",
+      503: "Booking is temporarily unavailable. Please try again shortly."
+    }
+  },
+  ar: {
+    photoSize: "يجب ألا يتجاوز حجم الصورة 1.5 ميغابايت.",
+    photoType: "يرجى رفع صورة بصيغة JPG أو PNG أو WebP.",
+    submitting: "جارٍ إرسال طلبك بأمان…",
+    failed: "تعذّر إرسال الطلب.",
+    success: (reference) => `تم تسجيل طلبك في الموقع وإتاحته للمديرة في لوحة الإدارة. رقم المتابعة: ${reference}. تؤكد هذه الرسالة استلام الطلب، وسيتم التنسيق النهائي بعد مراجعته.`,
+    connection: "تعذّر الاتصال. يرجى المحاولة بعد قليل.",
+    errors: {
+      400: "يرجى مراجعة بيانات النموذج والمحاولة مجدداً.",
+      401: "الجلسة غير صالحة. حدّثي الصفحة ثم حاولي مجدداً.",
+      403: "تعذّر التحقق من الطلب. حدّثي الصفحة ثم حاولي مجدداً.",
+      413: "حجم الصورة أو الطلب يتجاوز الحد المسموح.",
+      415: "صيغة الصورة غير مدعومة. اختاري JPG أو PNG أو WebP.",
+      429: "تم إرسال طلبات كثيرة. يرجى المحاولة بعد قليل.",
+      503: "الحجوزات غير متاحة مؤقتاً. يرجى المحاولة بعد قليل."
+    }
+  },
+  zh: {
+    photoSize: "照片大小不能超过 1.5 MB。",
+    photoType: "请上传 JPG、PNG 或 WebP 格式的图片。",
+    submitting: "正在安全提交您的请求…",
+    failed: "无法提交请求。",
+    success: (reference) => `您的申请已提交至网站，管理员可在后台查看。查询编号：${reference}。此消息确认网站已收到申请；最终安排将在审核后协调。`,
+    connection: "连接失败，请稍后重试。",
+    errors: {
+      400: "请检查表单信息后重试。",
+      401: "会话无效，请刷新页面后重试。",
+      403: "无法验证此请求，请刷新页面后重试。",
+      413: "照片或请求内容超过允许大小。",
+      415: "不支持此图片格式，请选择 JPG、PNG 或 WebP。",
+      429: "请求过于频繁，请稍后重试。",
+      503: "预约服务暂时不可用，请稍后重试。"
+    }
+  }
+};
+const bookingCopy = bookingMessages[siteLocale] || bookingMessages.fa;
 
 // Cloudflare Web Analytics RUM beacon (site token configured for lenabahri.ir).
 // Inject once from the shared script so every static page is measured consistently.
@@ -147,70 +219,36 @@ if (bookingForm) {
   bookingForm.addEventListener("submit", async (event) => {
     event.preventDefault();
     const data = new FormData(bookingForm);
-    const name = String(data.get("name") || "").trim();
-    const phone = String(data.get("phone") || "").trim();
-    const service = serviceSelect?.selectedOptions[0]?.textContent.trim() || "";
-    const payment = String(data.get("payment_method") || "");
-    const message = String(data.get("message") || "").trim();
     const photo = data.get("photo");
     const submitButton = bookingForm.querySelector('[type="submit"]');
 
     if (photo instanceof File && photo.size > 1_500_000) {
-      bookingPhotoInput.setCustomValidity("حجم عکس باید حداکثر ۱٫۵ مگابایت باشد.");
+      bookingPhotoInput.setCustomValidity(bookingCopy.photoSize);
       bookingPhotoInput.reportValidity();
       return;
     }
     if (photo instanceof File && photo.size && !["image/jpeg", "image/png", "image/webp"].includes(photo.type)) {
-      bookingPhotoInput.setCustomValidity("فقط عکس JPG، PNG یا WebP پذیرفته می‌شود.");
+      bookingPhotoInput.setCustomValidity(bookingCopy.photoType);
       bookingPhotoInput.reportValidity();
       return;
     }
 
     bookingPhotoInput?.setCustomValidity("");
-    if (bookingFormStatus) bookingFormStatus.textContent = "در حال ثبت امن درخواست…";
+    if (bookingFormStatus) bookingFormStatus.textContent = bookingCopy.submitting;
     if (submitButton) submitButton.disabled = true;
-    const whatsappWindow = window.open("about:blank", "_blank");
-    if (whatsappWindow) whatsappWindow.opener = null;
-
     try {
       const response = await fetch("/api/bookings", { method: "POST", body: data, credentials: "same-origin" });
       const result = await response.json();
-      if (!response.ok || !result.ok) throw new Error(result.error || "ثبت درخواست انجام نشد.");
-
-      const text = [
-        "سلام، درخواست رزرو/مشاوره از وب‌سایت لنا بحری دارم.",
-        `کد پیگیری: ${result.reference}`,
-        `نام: ${name}`,
-        `شماره تماس: ${phone}`,
-        `خدمت موردنظر: ${service}`,
-        `روش پرداخت/درخواست: ${payment === "cash" ? "رزرو با پرداخت نقدی و حضوری، پس از تأیید هماهنگی" : "درخواست مشاوره و هماهنگی"}`,
-        message ? `توضیحات: ${message}` : "",
-        photo instanceof File && photo.size ? "عکس در فرم سایت ثبت شده و از پنل مدیریت قابل مشاهده است." : ""
-      ].filter(Boolean).join("\n");
-      const whatsappUrl = `https://wa.me/989178280812?text=${encodeURIComponent(text)}`;
-      if (whatsappWindow) {
-        whatsappWindow.location.href = whatsappUrl;
-      } else if (bookingFormStatus) {
-        bookingFormStatus.textContent = `درخواست با کد ${result.reference} ثبت شد. `;
-        const link = document.createElement("a");
-        link.href = "https://wa.me/989178280812";
-        link.target = "_blank";
-        link.rel = "noopener noreferrer";
-        link.textContent = "برای اطلاع مدیر، ادامه در واتساپ";
-        link.addEventListener("click", (clickEvent) => {
-          clickEvent.preventDefault();
-          const messageWindow = window.open(whatsappUrl, "_blank");
-          if (messageWindow) messageWindow.opener = null;
-          else window.location.assign(whatsappUrl);
-        });
-        bookingFormStatus.append(link);
+      if (!response.ok || !result.ok) {
+        throw new Error(bookingCopy.errors[response.status] || (siteLocale === "fa" ? result.error : "") || bookingCopy.failed);
       }
+      window.dispatchEvent(new Event("lena:booking-submitted"));
+
+      if (bookingFormStatus) bookingFormStatus.textContent = bookingCopy.success(result.reference);
       bookingForm.reset();
       updatePhotoRequirement();
-      if (bookingFormStatus && whatsappWindow) bookingFormStatus.textContent = `درخواست با کد ${result.reference} ثبت شد؛ پیش‌نویس واتساپ باز شد. ارسال نهایی را در واتساپ تأیید کنید.`;
     } catch (error) {
-      whatsappWindow?.close();
-      if (bookingFormStatus) bookingFormStatus.textContent = error.message || "اتصال برقرار نشد؛ کمی بعد دوباره تلاش کنید.";
+      if (bookingFormStatus) bookingFormStatus.textContent = error.message || bookingCopy.connection;
     } finally {
       if (submitButton) submitButton.disabled = false;
     }

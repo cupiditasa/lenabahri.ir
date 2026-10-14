@@ -8,12 +8,20 @@
 const LENA_SITE_KEY = "site_uXzpEixNXPXxKucrmnreP9JZ";
 const LENA_CONVERSATION_STORAGE = "lena-assistant-conversation-id";
 
+function lenaLanguage() {
+  const locale = (document.documentElement.lang || "fa").split("-")[0].toLowerCase();
+  return ["fa", "en", "ar", "zh"].includes(locale) ? locale : "fa";
+}
+
 function lenaConversationId() {
-  let id = window.localStorage.getItem(LENA_CONVERSATION_STORAGE);
+  const locale = lenaLanguage();
+  const storageKey = `${LENA_CONVERSATION_STORAGE}-${locale}`;
+  let id = window.localStorage.getItem(storageKey);
+  if (!id && locale === "fa") id = window.localStorage.getItem(LENA_CONVERSATION_STORAGE);
   if (!id) {
     id = window.crypto?.randomUUID?.() ||
       `lena-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
-    window.localStorage.setItem(LENA_CONVERSATION_STORAGE, id);
+    window.localStorage.setItem(storageKey, id);
   }
   return id;
 }
@@ -36,7 +44,8 @@ window.LenaAssistantConfig = {
       history,
       context: {
         page,
-        language: "fa",
+        language: lenaLanguage(),
+        responseLanguage: lenaLanguage(),
         brand: "Lena Bahri Beauty Clinic"
       }
     };

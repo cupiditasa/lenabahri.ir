@@ -7,6 +7,174 @@
     : "";
   const asset = (name) => `${rootPath}assets/assistant/${name}`;
   const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+  const locale = (document.documentElement.lang || "fa").split("-")[0].toLowerCase();
+  const copy = {
+    fa: {
+      prompts: [
+        { label: "انتخاب خدمات", value: "برای انتخاب خدمت مناسب راهنمایی می‌خواهم." },
+        { label: "مراقبت‌های بعد", value: "مراقبت‌های بعد از خدمات آرایش دائم چیست؟" },
+        { label: "رزرو مشاوره", value: "چطور می‌توانم وقت مشاوره رزرو کنم؟" }
+      ],
+      nudge: "برای انتخاب خدمات راهنمایی می‌خوای؟",
+      closeNudge: "بستن پیام",
+      assistant: "دستیار هوشمند لنا",
+      clinic: "دستیار هوشمند کلینیک",
+      brand: "لنا",
+      ready: "آماده راهنمایی",
+      closeChat: "بستن گفتگو",
+      firstConsultation: "مشاوره اولیه",
+      intro: "سلام، من دستیار آنلاین لنا هستم. درباره خدمات، مراقبت‌ها و رزرو وقت راهنمایی‌ات می‌کنم.",
+      typing: "در حال نوشتن",
+      suggested: "پرسش‌های پیشنهادی",
+      yourMessage: "پیام شما",
+      placeholder: "سؤالت رو اینجا بنویس…",
+      send: "ارسال پیام",
+      disclaimer: "پاسخ‌ها جایگزین مشاوره تخصصی حضوری نیستند.",
+      needHelp: "نیاز به راهنمایی داری؟",
+      askLena: "از لنا بپرس",
+      fallback: {
+        booking: "برای رزرو، بخش «رزرو و مشاوره» همین سایت را تکمیل کن؛ درخواستت برای هماهنگی در واتساپ آماده می‌شود. اگر بخواهی، در انتخاب خدمت مناسب هم راهنمایی‌ات می‌کنم.",
+        price: "هزینهٔ دقیق به تکنیک، وضعیت فعلی پوست و فرم موردنظر بستگی دارد. برای پیشنهاد دقیق‌تر، مشاورهٔ کوتاه و بررسی عکس واضح از ناحیه لازم است.",
+        care: "مراقبت‌ها به نوع خدمت بستگی دارند؛ معمولاً ناحیه را تمیز و خشک نگه دار، از دست‌کاری و آفتاب مستقیم دوری کن و دستور متخصص را انجام بده. نام خدمتت را بگو تا دقیق‌تر راهنمایی کنم.",
+        brows: "برای نتیجهٔ طبیعی ابرو، تکنیک مناسب به جنس پوست، تراکم مو و نتیجهٔ دلخواه بستگی دارد. نانو بروز و هاشور برای خطوط ظریف مناسب‌اند و شیدینگ جلوه‌ای نرم‌تر و پودری ایجاد می‌کند.",
+        lips: "شیدینگ لب به یکنواخت‌تر شدن تناژ و تعریف ملایم فرم لب کمک می‌کند. رنگ پس از بررسی رنگ طبیعی لب و سلیقهٔ شما انتخاب می‌شود تا نتیجه با چهره هماهنگ باشد.",
+        location: "کلینیک در شیراز، معالی‌آباد، ابتدای بهاران، مجتمع اداری آرین قرار دارد. برای هماهنگی پیش از مراجعه، از بخش رزرو سایت اقدام کن.",
+        general: "می‌توانم دربارهٔ انتخاب خدمات ابرو و لب، مراقبت‌های قبل و بعد، نمونه‌کارها و رزرو مشاوره راهنمایی‌ات کنم. دوست داری از کدام مورد شروع کنیم؟"
+      },
+      patterns: {
+        booking: /رزرو|وقت|نوبت|مشاوره/,
+        price: /قیمت|هزینه|تعرفه/,
+        care: /مراقبت|بعد از|ترمیم|شست/,
+        brows: /ابرو|میکرو|نانو|هاشور/,
+        lips: /لب|شیدینگ لب|رژ/,
+        location: /آدرس|کجا|مکان|شیراز/
+      }
+    },
+    en: {
+      prompts: [
+        { label: "Choose a service", value: "Can you help me choose the right service?" },
+        { label: "Aftercare", value: "How should I care for my skin after a PMU service?" },
+        { label: "Book a consultation", value: "How can I book a consultation?" }
+      ],
+      nudge: "Need help choosing a service?",
+      closeNudge: "Close message",
+      assistant: "Lena’s virtual assistant",
+      clinic: "Clinic virtual assistant",
+      brand: "Lena",
+      ready: "Ready to help",
+      closeChat: "Close chat",
+      firstConsultation: "Initial consultation",
+      intro: "Hello, I’m Lena’s online assistant. I can help with services, aftercare, and booking a consultation.",
+      typing: "Typing",
+      suggested: "Suggested questions",
+      yourMessage: "Your message",
+      placeholder: "Type your question here…",
+      send: "Send message",
+      disclaimer: "Replies do not replace an in-person consultation with a specialist.",
+      needHelp: "Need a little guidance?",
+      askLena: "Ask Lena",
+      fallback: {
+        booking: "To request an appointment, complete the Booking & Consultation form on this website. Your request will be prepared for coordination through WhatsApp. I can also help you choose a suitable service.",
+        price: "The exact price depends on the technique, your current skin condition, and the result you want. A brief consultation and a clear photo of the area help us make a more accurate recommendation.",
+        care: "Aftercare depends on the service. In general, keep the area clean and dry, avoid touching it and direct sun, and follow your specialist’s instructions. Tell me which service you had for more relevant guidance.",
+        brows: "A natural-looking brow technique depends on your skin type, hair density, and desired result. Nano brows and hairstrokes create fine lines, while shading gives a softer, powder-like finish.",
+        lips: "Lip shading can help even out the tone and softly define the lip shape. The color should be selected after reviewing your natural lip tone and preferences for a result that suits your features.",
+        location: "The clinic is in Maali-Abad, Shiraz, at the beginning of Baharan Street, Arian Office Complex. Please use the booking section to coordinate before visiting.",
+        general: "I can help with brow and lip services, before- and aftercare, portfolio examples, and consultation bookings. What would you like to ask about first?"
+      },
+      patterns: {
+        booking: /book|appointment|consult|schedule/,
+        price: /price|cost|fee|how much/,
+        care: /aftercare|care|healing|wash|after treatment/,
+        brows: /brow|eyebrow|microblading|nano|hairstroke/,
+        lips: /lip|shading|lipstick/,
+        location: /address|where|location|shiraz/
+      }
+    },
+    ar: {
+      prompts: [
+        { label: "اختيار الخدمة", value: "هل يمكنك مساعدتي في اختيار الخدمة المناسبة؟" },
+        { label: "العناية بعد الخدمة", value: "كيف أعتني ببشرتي بعد خدمة التجميل الدائم؟" },
+        { label: "حجز استشارة", value: "كيف يمكنني حجز استشارة؟" }
+      ],
+      nudge: "هل تحتاجين إلى مساعدة في اختيار الخدمة؟",
+      closeNudge: "إغلاق الرسالة",
+      assistant: "مساعدة لنا الافتراضية",
+      clinic: "المساعدة الافتراضية للعيادة",
+      brand: "لنا",
+      ready: "جاهزة للمساعدة",
+      closeChat: "إغلاق المحادثة",
+      firstConsultation: "استشارة أولية",
+      intro: "مرحباً، أنا المساعدة الإلكترونية للنا. يمكنني إرشادك بشأن الخدمات والعناية بعد الإجراء وحجز الاستشارة.",
+      typing: "جارٍ الكتابة",
+      suggested: "أسئلة مقترحة",
+      yourMessage: "رسالتك",
+      placeholder: "اكتبي سؤالك هنا…",
+      send: "إرسال الرسالة",
+      disclaimer: "لا تغني الإجابات عن استشارة حضورية مع مختصة.",
+      needHelp: "هل تحتاجين إلى إرشاد؟",
+      askLena: "اسألي لنا",
+      fallback: {
+        booking: "لطلب موعد، أكملي نموذج الحجز والاستشارة على الموقع. ستُجهّز رسالتك للتنسيق عبر واتساب. ويمكنني أيضاً مساعدتك في اختيار الخدمة المناسبة.",
+        price: "تعتمد التكلفة الدقيقة على التقنية وحالة البشرة الحالية والشكل المطلوب. تساعد استشارة قصيرة وصورة واضحة للمنطقة على تقديم توصية أدق.",
+        care: "تختلف العناية حسب نوع الخدمة. عموماً، حافظي على نظافة المنطقة وجفافها، وتجنبي لمسها والتعرض المباشر للشمس، واتّبعي تعليمات المختصة. اذكري الخدمة لأقدّم إرشاداً أدق.",
+        brows: "يعتمد اختيار تقنية الحواجب الطبيعية على نوع البشرة وكثافة الشعر والنتيجة المرغوبة. تناسب تقنية النانو والشعيرات الخطوط الدقيقة، بينما يمنح التظليل مظهراً أنعم كالبودرة.",
+        lips: "يساعد تظليل الشفاه على توحيد اللون وتحديد شكلها بلطف. يُختار اللون بعد تقييم لون الشفاه الطبيعي وتفضيلاتك لتحقيق نتيجة متناغمة مع ملامحك.",
+        location: "تقع العيادة في شيراز، معالي آباد، بداية شارع بهاران، مجمع آريان للمكاتب. يُرجى التنسيق قبل الزيارة من قسم الحجز على الموقع.",
+        general: "يمكنني إرشادك بشأن خدمات الحواجب والشفاه والعناية قبل الإجراء وبعده وأمثلة الأعمال وحجز الاستشارة. ما الموضوع الذي تودين البدء به؟"
+      },
+      patterns: {
+        booking: /حجز|موعد|استشارة/,
+        price: /سعر|تكلفة|أسعار/,
+        care: /عناية|بعد|ترميم|غسل/,
+        brows: /حاجب|حواجب|ميكروبليدنج|نانو/,
+        lips: /شفاه|شفة|تظليل|أحمر الشفاه/,
+        location: /عنوان|أين|موقع|شيراز/
+      }
+    },
+    zh: {
+      prompts: [
+        { label: "选择服务", value: "可以帮我选择适合的服务吗？" },
+        { label: "术后护理", value: "做完半永久妆后应该如何护理皮肤？" },
+        { label: "预约咨询", value: "怎样预约咨询？" }
+      ],
+      nudge: "需要帮助选择服务吗？",
+      closeNudge: "关闭提示",
+      assistant: "Lena 智能助理",
+      clinic: "诊所智能助理",
+      brand: "Lena",
+      ready: "随时为您提供帮助",
+      closeChat: "关闭对话",
+      firstConsultation: "初步咨询",
+      intro: "您好，我是 Lena 的在线助理，可以为您介绍服务、术后护理和咨询预约。",
+      typing: "正在输入",
+      suggested: "推荐问题",
+      yourMessage: "您的消息",
+      placeholder: "请在这里输入问题…",
+      send: "发送消息",
+      disclaimer: "回复不能替代与专业人员的面对面咨询。",
+      needHelp: "需要一些建议吗？",
+      askLena: "咨询 Lena",
+      fallback: {
+        booking: "如需预约，请填写本网站的预约与咨询表单。您的请求会整理为 WhatsApp 协调信息。我也可以帮您选择合适的服务。",
+        price: "具体费用取决于所选技术、当前皮肤状况和期望效果。简短咨询并查看清晰的局部照片，有助于给出更准确的建议。",
+        care: "护理方式因服务而异。通常应保持该区域清洁干燥，避免触碰和阳光直射，并遵循专业人员的具体指导。告诉我您做的项目，我可以提供更相关的建议。",
+        brows: "自然眉形的技术选择取决于肤质、眉毛密度和期望效果。纳米眉和仿真线条适合细致的毛流效果，雾眉则呈现更柔和的粉雾感。",
+        lips: "唇部雾化可帮助均匀唇色并柔和勾勒唇形。应根据天然唇色和个人偏好选择颜色，使效果与面部特征协调。",
+        location: "诊所位于设拉子 Maali-Abad 区，Baharan 街起点的 Arian 办公楼。到访前请通过网站预约区进行协调。",
+        general: "我可以为您介绍眉部和唇部服务、术前术后护理、作品案例及咨询预约。您想先了解哪一项？"
+      },
+      patterns: {
+        booking: /预约|预订|咨询|时间/,
+        price: /价格|费用|多少钱/,
+        care: /护理|恢复|清洗|术后/,
+        brows: /眉|纹眉|眉毛|纳米/,
+        lips: /唇|嘴唇|雾唇/,
+        location: /地址|哪里|位置|设拉子/
+      }
+    }
+  }[locale] || null;
+  const localizedCopy = copy || null;
 
   const state = {
     open: false,
@@ -15,22 +183,25 @@
     greeted: false
   };
 
-  const quickPrompts = [
-    { label: "انتخاب خدمات", value: "برای انتخاب خدمت مناسب راهنمایی می‌خواهم." },
-    { label: "مراقبت‌های بعد", value: "مراقبت‌های بعد از خدمات آرایش دائم چیست؟" },
-    { label: "رزرو مشاوره", value: "چطور می‌توانم وقت مشاوره رزرو کنم؟" }
-  ];
+  const quickPrompts = (localizedCopy || {
+    prompts: [
+      { label: "انتخاب خدمات", value: "برای انتخاب خدمت مناسب راهنمایی می‌خواهم." },
+      { label: "مراقبت‌های بعد", value: "مراقبت‌های بعد از خدمات آرایش دائم چیست؟" },
+      { label: "رزرو مشاوره", value: "چطور می‌توانم وقت مشاوره رزرو کنم؟" }
+    ]
+  }).prompts;
+  const text = (key, fallback) => localizedCopy?.[key] || fallback;
 
   const widget = document.createElement("div");
   widget.className = "lena-assistant";
   widget.innerHTML = `
     <div class="lena-assistant__nudge" role="status" aria-live="polite">
-      <span>برای انتخاب خدمات راهنمایی می‌خوای؟</span>
-      <button type="button" aria-label="بستن پیام">×</button>
+      <span>${text("nudge", "برای انتخاب خدمات راهنمایی می‌خوای؟")}</span>
+      <button type="button" aria-label="${text("closeNudge", "بستن پیام")}">×</button>
     </div>
 
     <section class="lena-assistant__panel" role="dialog" aria-modal="false"
-      aria-label="دستیار هوشمند لنا" aria-hidden="true">
+      aria-label="${text("assistant", "دستیار هوشمند لنا")}" aria-hidden="true">
       <header class="lena-assistant__header">
         <div class="lena-assistant__portrait" aria-hidden="true">
           <video class="lena-assistant__portrait-video" muted playsinline preload="metadata"
@@ -40,46 +211,46 @@
           <span class="lena-assistant__presence"></span>
         </div>
         <div class="lena-assistant__identity">
-          <small>دستیار هوشمند کلینیک</small>
-          <strong>لنا</strong>
-          <span><i></i> آماده راهنمایی</span>
+          <small>${text("clinic", "دستیار هوشمند کلینیک")}</small>
+          <strong>${text("brand", "لنا")}</strong>
+          <span><i></i> ${text("ready", "آماده راهنمایی")}</span>
         </div>
-        <button class="lena-assistant__close" type="button" aria-label="بستن گفتگو">
+        <button class="lena-assistant__close" type="button" aria-label="${text("closeChat", "بستن گفتگو")}">
           <span></span><span></span>
         </button>
       </header>
 
       <div class="lena-assistant__conversation" aria-live="polite">
         <div class="lena-assistant__intro">
-          <small>مشاوره اولیه</small>
-          <p>سلام، من دستیار آنلاین لنا هستم. درباره خدمات، مراقبت‌ها و رزرو وقت راهنمایی‌ات می‌کنم.</p>
+          <small>${text("firstConsultation", "مشاوره اولیه")}</small>
+          <p>${text("intro", "سلام، من دستیار آنلاین لنا هستم. درباره خدمات، مراقبت‌ها و رزرو وقت راهنمایی‌ات می‌کنم.")}</p>
         </div>
         <div class="lena-assistant__messages"></div>
-        <div class="lena-assistant__typing" aria-label="در حال نوشتن">
+        <div class="lena-assistant__typing" aria-label="${text("typing", "در حال نوشتن")}">
           <span></span><span></span><span></span>
         </div>
       </div>
 
-      <div class="lena-assistant__quick" aria-label="پرسش‌های پیشنهادی"></div>
+      <div class="lena-assistant__quick" aria-label="${text("suggested", "پرسش‌های پیشنهادی")}"></div>
 
       <form class="lena-assistant__composer">
-        <label for="lena-assistant-input">پیام شما</label>
+        <label for="lena-assistant-input">${text("yourMessage", "پیام شما")}</label>
         <textarea id="lena-assistant-input" rows="1"
-          placeholder="سؤالت رو اینجا بنویس…" maxlength="700"></textarea>
-        <button type="submit" aria-label="ارسال پیام">
+          placeholder="${text("placeholder", "سؤالت رو اینجا بنویس…")}" maxlength="700"></textarea>
+        <button type="submit" aria-label="${text("send", "ارسال پیام")}">
           <svg viewBox="0 0 24 24" aria-hidden="true">
             <path d="M4 12h15M13 6l6 6-6 6"/>
           </svg>
         </button>
       </form>
-      <p class="lena-assistant__disclaimer">پاسخ‌ها جایگزین مشاوره تخصصی حضوری نیستند.</p>
+      <p class="lena-assistant__disclaimer">${text("disclaimer", "پاسخ‌ها جایگزین مشاوره تخصصی حضوری نیستند.")}</p>
     </section>
 
     <button class="lena-assistant__launcher" type="button"
-      aria-label="گفتگو با دستیار هوشمند لنا" aria-expanded="false">
+      aria-label="${text("assistant", "گفتگو با دستیار هوشمند لنا")}" aria-expanded="false">
       <span class="lena-assistant__launcher-copy" aria-hidden="true">
-        <small>نیاز به راهنمایی داری؟</small>
-        <b>از لنا بپرس</b>
+        <small>${text("needHelp", "نیاز به راهنمایی داری؟")}</small>
+        <b>${text("askLena", "از لنا بپرس")}</b>
       </span>
       <span class="lena-assistant__character" aria-hidden="true">
         <span class="lena-assistant__character-aura"></span>
@@ -89,7 +260,7 @@
         </video>
         <span class="lena-assistant__character-status"></span>
       </span>
-      <span class="lena-assistant__unread">۱</span>
+      <span class="lena-assistant__unread">${locale === "fa" ? "۱" : locale === "ar" ? "١" : "1"}</span>
     </button>
   `;
 
@@ -110,6 +281,7 @@
   const videos = [...widget.querySelectorAll("video")];
   const character = widget.querySelector(".lena-assistant__character");
   widget.classList.add("has-video-character");
+  widget.dir = locale === "ar" || locale === "fa" ? "rtl" : "ltr";
   let interactionX = -.58;
   let interactionY = -.48;
   let desiredX = -.58;
@@ -598,6 +770,18 @@
     await new Promise((resolve) => {
       window.setTimeout(resolve, reducedMotion.matches ? 120 : 650);
     });
+
+    if (localizedCopy) {
+      const normalizedMessage = message.toLowerCase();
+      const { patterns, fallback } = localizedCopy;
+      if (patterns.booking.test(normalizedMessage)) return fallback.booking;
+      if (patterns.price.test(normalizedMessage)) return fallback.price;
+      if (patterns.care.test(normalizedMessage)) return fallback.care;
+      if (patterns.brows.test(normalizedMessage)) return fallback.brows;
+      if (patterns.lips.test(normalizedMessage)) return fallback.lips;
+      if (patterns.location.test(normalizedMessage)) return fallback.location;
+      return fallback.general;
+    }
 
     const normalized = message.replace(/\u200c/g, " ").toLowerCase();
 

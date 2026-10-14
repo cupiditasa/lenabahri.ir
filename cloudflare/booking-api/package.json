@@ -4,7 +4,14 @@
   "type": "module",
   "scripts": {
     "test": "node --test",
-    "check": "node --check src/worker.js && node --check ../../admin.js && node --check ../../script.js"
+    "start": "node src/server.js",
+    "check": "node --check src/worker.js && node --check src/sqlite-d1.js && node --check src/server.js && node --check scripts/backup-database.js && node --check ../../admin.js && node --check ../../script.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "13.0.3"
+  },
+  "allowScripts": {
+    "better-sqlite3@13.0.3": true
   },
   "devDependencies": {
     "wrangler": "^4.149.0"

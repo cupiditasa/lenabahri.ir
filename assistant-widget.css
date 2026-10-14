@@ -22,6 +22,28 @@
   transition: opacity .2s ease, visibility .2s ease;
 }
 
+.lena-assistant[dir="ltr"] {
+  right: auto;
+  left: clamp(14px, 2.2vw, 28px);
+  direction: ltr;
+}
+
+.lena-assistant[dir="ltr"] .lena-assistant__character {
+  right: auto;
+  left: -2px;
+}
+
+.lena-assistant[dir="ltr"] .lena-assistant__launcher {
+  justify-content: flex-start;
+}
+
+.lena-assistant[dir="ltr"] .lena-assistant__launcher-copy,
+.lena-assistant[dir="ltr"] .lena-assistant__intro,
+.lena-assistant[dir="ltr"] .lena-assistant__messages,
+.lena-assistant[dir="ltr"] .lena-assistant__composer {
+  text-align: left;
+}
+
 body.menu-open .lena-assistant,
 body:has(.project-modal.open) .lena-assistant,
 body:has(.media-modal.open) .lena-assistant {

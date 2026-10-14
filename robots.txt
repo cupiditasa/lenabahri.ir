@@ -1,6 +1,9 @@
 User-agent: *
 Allow: /
 Disallow: /admin.html
+Disallow: /en/admin.html
+Disallow: /ar/admin.html
+Disallow: /zh/admin.html
 
 Sitemap: https://lenabahri.ir/sitemap.xml
 Sitemap: https://lenabahri.ir/video-sitemap.xml

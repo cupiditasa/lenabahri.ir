@@ -1,6 +1,27 @@
-(() => {
+ (async () => {
   const data = window.LENA_GALLERY;
   if (!data) return;
+  const locale = (document.documentElement.lang || "fa").split("-")[0].toLowerCase();
+  if (locale !== "fa") {
+    let catalog = await window.LenaLocale?.catalogReady;
+    if (!catalog) {
+      catalog = await new Promise((resolve) => {
+        const timeout = window.setTimeout(() => resolve({ common: {} }), 2000);
+        window.addEventListener("lena:locale-ready", () => {
+          window.clearTimeout(timeout);
+          resolve(window.LenaLocaleCatalog || { common: {} });
+        }, { once: true });
+      });
+    }
+    const common = catalog.common || {};
+    const translateData = (value) => {
+      if (typeof value === "string") return window.LenaLocale?.formatDigits(common[value] ?? value) ?? value;
+      if (Array.isArray(value)) return value.map(translateData);
+      if (value && typeof value === "object") return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, translateData(item)]));
+      return value;
+    };
+    Object.assign(data, translateData(data));
+  }
 
   const body = document.body;
   const motionToggle = document.querySelector("#motionToggle");
@@ -164,7 +185,7 @@
       modalMediaTrack.classList.toggle("without-transition", !animate);
       modalMediaTrack.style.transform = `translate3d(${-modalSlide * 50}%, 0, 0)`;
     }
-    if (modalMediaCurrent) modalMediaCurrent.textContent = modalSlide === 0 ? "۱" : "۲";
+    if (modalMediaCurrent) modalMediaCurrent.textContent = window.LenaLocale?.formatDigits(modalSlide + 1) || String(modalSlide + 1);
     modalMedia?.querySelectorAll(".modal-shot").forEach((shot, index) => {
       shot.setAttribute("aria-hidden", String(index !== modalSlide));
     });

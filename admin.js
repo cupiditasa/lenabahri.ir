@@ -1,3 +1,10 @@
+if (!window.LenaLocale) {
+  const localeLoader = document.createElement("script");
+  localeLoader.src = "/assets/site-locale.js";
+  localeLoader.defer = true;
+  document.head.append(localeLoader);
+}
+
 const loginPanel = document.querySelector("#loginPanel");
 const dashboard = document.querySelector("#dashboard");
 const loginForm = document.querySelector("#loginForm");
@@ -7,14 +14,80 @@ const bookingList = document.querySelector("#bookingList");
 const summary = document.querySelector("#summary");
 const statusFilter = document.querySelector("#statusFilter");
 const searchInput = document.querySelector("#searchInput");
-const statuses = new Map([["pending", "در انتظار"], ["contacted", "تماس گرفته شد"], ["confirmed", "تأیید شد"], ["completed", "انجام شد"], ["cancelled", "لغو شد"]]);
-const paymentLabels = new Map([["cash", "پرداخت نقدی و حضوری"], ["consult", "درخواست مشاوره"]]);
-const serviceLabels = new Map([["microblading", "میکروبلدینگ ابرو (فیبروز)"], ["hairstroke", "هیراستروک ابرو"], ["nano-brows", "نانو بروز ابرو"], ["scalp-micropigmentation", "میکرواسکالپ سر"], ["lip-shading", "شیدینگ لب"], ["lip-tint", "تینت لب"], ["eyeliner", "خط چشم"], ["eye-shading", "شید چشم"], ["lash-line", "بن مژه"], ["brow-removal", "ریموو ابرو"], ["training", "آموزش تخصصی"], ["consultation", "مشاوره"]]);
+const adminLocale = (document.documentElement.lang || "fa").split("-")[0].toLowerCase();
+const adminCopy = {
+  fa: {
+    all: "همهٔ درخواست‌ها", phone: "شماره تماس", service: "خدمت", payment: "نحوهٔ پرداخت", notes: "توضیحات",
+    changeStatus: "تغییر وضعیت درخواست", privatePhoto: "مشاهدهٔ عکس خصوصی", loading: "در حال دریافت درخواست‌ها…",
+    empty: "درخواستی برای این فیلتر پیدا نشد.", recent: "۲۰۰ درخواست اخیر نمایش داده شده‌اند؛ برای دیدن مورد خاص جست‌وجو کنید.",
+    connection: "ارتباط با سامانه برقرار نشد.", session: "نشست مدیریت پایان یافته؛ دوباره وارد شوید."
+  },
+  en: {
+    all: "All requests", phone: "Phone", service: "Service", payment: "Payment method", notes: "Notes",
+    changeStatus: "Change request status", privatePhoto: "View private photo", loading: "Loading requests…",
+    empty: "No requests match this filter.", recent: "Showing the 200 most recent requests. Search to find a specific request.",
+    connection: "Could not connect to the booking service.", session: "Your admin session has expired. Please sign in again."
+  },
+  ar: {
+    all: "كل الطلبات", phone: "رقم الهاتف", service: "الخدمة", payment: "طريقة الدفع", notes: "ملاحظات",
+    changeStatus: "تغيير حالة الطلب", privatePhoto: "عرض الصورة الخاصة", loading: "جارٍ تحميل الطلبات…",
+    empty: "لا توجد طلبات تطابق هذا الفلتر.", recent: "تُعرض أحدث 200 طلب. ابحثي للعثور على طلب محدد.",
+    connection: "تعذّر الاتصال بنظام الحجوزات.", session: "انتهت جلسة الإدارة. يرجى تسجيل الدخول مجدداً."
+  },
+  zh: {
+    all: "所有申请", phone: "电话", service: "服务项目", payment: "付款方式", notes: "备注",
+    changeStatus: "更改申请状态", privatePhoto: "查看私密照片", loading: "正在加载申请…",
+    empty: "没有符合此筛选条件的申请。", recent: "显示最近 200 条申请。请搜索以查找特定申请。",
+    connection: "无法连接预约服务。", session: "管理员登录已过期，请重新登录。"
+  }
+}[adminLocale] || {
+  all: "همهٔ درخواست‌ها", phone: "شماره تماس", service: "خدمت", payment: "نحوهٔ پرداخت", notes: "توضیحات",
+  changeStatus: "تغییر وضعیت درخواست", privatePhoto: "مشاهدهٔ عکس خصوصی", loading: "در حال دریافت درخواست‌ها…",
+  empty: "درخواستی برای این فیلتر پیدا نشد.", recent: "۲۰۰ درخواست اخیر نمایش داده شده‌اند؛ برای دیدن مورد خاص جست‌وجو کنید.",
+  connection: "ارتباط با سامانه برقرار نشد.", session: "نشست مدیریت پایان یافته؛ دوباره وارد شوید."
+};
+const statusLabels = {
+  fa: ["در انتظار", "تماس گرفته شد", "تأیید شد", "انجام شد", "لغو شد"],
+  en: ["Pending", "Contacted", "Confirmed", "Completed", "Cancelled"],
+  ar: ["قيد الانتظار", "تم التواصل", "تم التأكيد", "مكتمل", "ملغي"],
+  zh: ["待处理", "已联系", "已确认", "已完成", "已取消"]
+}[adminLocale] || ["در انتظار", "تماس گرفته شد", "تأیید شد", "انجام شد", "لغو شد"];
+const statuses = new Map(["pending", "contacted", "confirmed", "completed", "cancelled"].map((key, index) => [key, statusLabels[index]]));
+const paymentLabels = new Map([
+  ["cash", { fa: "پرداخت نقدی و حضوری", en: "Cash payment (in person)", ar: "الدفع نقداً في الاستوديو", zh: "到店现金付款" }[adminLocale] || "پرداخت نقدی و حضوری"],
+  ["consult", { fa: "درخواست مشاوره", en: "Consultation request", ar: "طلب استشارة", zh: "咨询申请" }[adminLocale] || "درخواست مشاوره"]
+]);
+const serviceNames = {
+  microblading: ["میکروبلدینگ ابرو (فیبروز)", "Eyebrow microblading (PhiBrows)", "مايكروبليدنج الحواجب (PhiBrows)", "眉部微雕（PhiBrows）"],
+  hairstroke: ["هیراستروک ابرو", "Eyebrow hairstrokes", "رسم شعيرات الحواجب", "眉部仿真线条"],
+  "nano-brows": ["نانو بروز ابرو", "Nano brows", "حواجب النانو", "纳米眉"],
+  "scalp-micropigmentation": ["میکرواسکالپ سر", "Scalp micropigmentation", "التصبغ التجميلي لفروة الرأس", "头皮微色素"],
+  "lip-shading": ["شیدینگ لب", "Lip shading", "تظليل الشفاه", "唇部雾化"],
+  "lip-tint": ["تینت لب", "Lip tint", "تلوين الشفاه", "唇部染色"],
+  eyeliner: ["خط چشم", "Eyeliner", "الآيلاينر", "眼线"],
+  "eye-shading": ["شید چشم", "Eye shading", "تظليل العين", "眼部柔雾"],
+  "lash-line": ["بن مژه", "Lash-line enhancement", "تعزيز خط الرموش", "美瞳线"],
+  "brow-removal": ["ریموو ابرو", "Brow pigment removal", "إزالة صبغة الحواجب", "眉部色料去除"],
+  training: ["آموزش تخصصی", "Professional training", "تدريب متخصص", "专业培训"],
+  consultation: ["مشاوره", "Consultation", "استشارة", "咨询"]
+};
+const localeIndex = { fa: 0, en: 1, ar: 2, zh: 3 }[adminLocale] ?? 0;
+const serviceLabels = new Map(Object.entries(serviceNames).map(([key, names]) => [key, names[localeIndex]]));
+const numberLocale = { fa: "fa-IR-u-nu-arabext", en: "en-US", ar: "ar", zh: "zh-CN" }[adminLocale] || "fa-IR";
+const dateLocale = { fa: "fa-IR-u-ca-persian", en: "en-US", ar: "ar", zh: "zh-CN" }[adminLocale] || "fa-IR-u-ca-persian";
+
+function localizedError(message) {
+  if (!message || adminLocale === "fa") return message || adminCopy.connection;
+  if (/وارد شوید|منقضی|نشست مدیریت/i.test(message)) return adminCopy.session;
+  if (/ارتباط|سامانه|سرور/i.test(message)) return adminCopy.connection;
+  if (/[\u0600-\u06ff]/u.test(message)) return adminCopy.connection;
+  return message;
+}
 
 async function api(path, options = {}) {
   const response = await fetch(path, { ...options, credentials: "same-origin", headers: { ...(options.body ? { "Content-Type": "application/json" } : {}), ...options.headers } });
   const body = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(body.error || "ارتباط با سامانه برقرار نشد.");
+  if (!response.ok) throw new Error(localizedError(body.error));
   return body;
 }
 
@@ -34,9 +107,9 @@ function addDetail(parent, label, value) {
 function renderSummary(counts) {
   const values = new Map(counts.map((item) => [item.status, item.count]));
   summary.replaceChildren();
-  [["همهٔ درخواست‌ها", counts.reduce((total, item) => total + item.count, 0)], ...[...statuses].map(([key, label]) => [label, values.get(key) || 0])].forEach(([label, count]) => {
+  [[adminCopy.all, counts.reduce((total, item) => total + item.count, 0)], ...[...statuses].map(([key, label]) => [label, values.get(key) || 0])].forEach(([label, count]) => {
     const item = node("div", "summary-item");
-    item.append(node("span", "", label), node("b", "", new Intl.NumberFormat("fa-IR").format(count)));
+    item.append(node("span", "", label), node("b", "", new Intl.NumberFormat(numberLocale).format(count)));
     summary.append(item);
   });
 }
@@ -45,17 +118,17 @@ function renderBooking(booking) {
   const card = node("article", "booking-card");
   const top = node("div", "booking-top");
   const identity = document.createElement("div");
-  identity.append(node("h2", "", booking.name), node("p", "booking-meta", new Date(booking.created_at * 1000).toLocaleString("fa-IR")));
+  identity.append(node("h2", "", booking.name), node("p", "booking-meta", new Date(booking.created_at * 1000).toLocaleString(dateLocale)));
   top.append(identity, node("span", "booking-ref", `#${booking.id.slice(0, 8).toUpperCase()}`));
   const details = node("div", "booking-details");
-  addDetail(details, "شماره تماس", booking.phone);
-  addDetail(details, "خدمت", serviceLabels.get(booking.service) || booking.service);
-  addDetail(details, "نحوهٔ پرداخت", paymentLabels.get(booking.payment_method) || booking.payment_method);
+  addDetail(details, adminCopy.phone, booking.phone);
+  addDetail(details, adminCopy.service, serviceLabels.get(booking.service) || booking.service);
+  addDetail(details, adminCopy.payment, paymentLabels.get(booking.payment_method) || booking.payment_method);
   card.append(top, details);
-  if (booking.message) card.append(node("p", "booking-message", `توضیحات: ${booking.message}`));
+  if (booking.message) card.append(node("p", "booking-message", `${adminCopy.notes}: ${booking.message}`));
   const actions = node("div", "booking-actions");
   const status = document.createElement("select");
-  status.setAttribute("aria-label", "تغییر وضعیت درخواست");
+  status.setAttribute("aria-label", adminCopy.changeStatus);
   for (const [value, label] of statuses) {
     const option = document.createElement("option");
     option.value = value;
@@ -71,7 +144,7 @@ function renderBooking(booking) {
   });
   actions.append(status);
   if (booking.has_photo) {
-    const photo = node("a", "photo-link", "مشاهدهٔ عکس خصوصی");
+    const photo = node("a", "photo-link", adminCopy.privatePhoto);
     photo.href = `/api/admin/bookings/${encodeURIComponent(booking.id)}/photo`;
     photo.target = "_blank";
     photo.rel = "noopener noreferrer";
@@ -82,7 +155,7 @@ function renderBooking(booking) {
 }
 
 async function loadBookings() {
-  dashboardFeedback.textContent = "در حال دریافت درخواست‌ها…";
+  dashboardFeedback.textContent = adminCopy.loading;
   const params = new URLSearchParams();
   if (statusFilter.value) params.set("status", statusFilter.value);
   if (searchInput.value.trim()) params.set("q", searchInput.value.trim());
@@ -91,10 +164,10 @@ async function loadBookings() {
     renderSummary(result.counts);
     bookingList.replaceChildren();
     if (result.bookings.length) result.bookings.forEach((booking) => bookingList.append(renderBooking(booking)));
-    else bookingList.append(node("div", "empty-state", "درخواستی برای این فیلتر پیدا نشد."));
-    dashboardFeedback.textContent = result.bookings.length >= 200 ? "۲۰۰ درخواست اخیر نمایش داده شده‌اند؛ برای دیدن مورد خاص جست‌وجو کنید." : "";
+    else bookingList.append(node("div", "empty-state", adminCopy.empty));
+    dashboardFeedback.textContent = result.bookings.length >= 200 ? adminCopy.recent : "";
   } catch (error) {
-    if (error.message.includes("وارد شوید") || error.message.includes("منقضی")) showLogin();
+    if (error.message === adminCopy.session) showLogin();
     dashboardFeedback.textContent = error.message;
   }
 }

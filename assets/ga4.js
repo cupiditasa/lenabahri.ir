@@ -1,4 +1,45 @@
 (() => {
+  if (!document.querySelector('script[data-lena-locale-loader]')) {
+    const localeLoader = document.createElement("script");
+    localeLoader.src = "/assets/site-locale.js";
+    localeLoader.defer = true;
+    localeLoader.dataset.lenaLocaleLoader = "true";
+    document.head.append(localeLoader);
+  }
+
+  const locale = (document.documentElement.lang || "fa").split("-")[0].toLowerCase();
+  const consentCopy = {
+    fa: {
+      settings: "تنظیمات آمار", settingsLabel: "تنظیمات رضایت آمار بازدید", region: "انتخاب رضایت آمار بازدید",
+      title: "تنظیمات آمار بازدید",
+      description: "در صورت موافقت، آمار بازدید صفحات برای بهبود سایت ثبت می‌شود. نام، شماره، عکس و متن فرم رزرو به Google ارسال نمی‌شود. انتخابت را هر زمان از «تنظیمات آمار» تغییر بده.",
+      accept: "موافقم", decline: "مخالفم"
+    },
+    en: {
+      settings: "Analytics settings", settingsLabel: "Analytics consent settings", region: "Analytics consent choice",
+      title: "Analytics settings",
+      description: "If you agree, page-visit data will be collected to improve the website. Your booking name, phone number, photo and message are not sent to Google. Change your choice at any time in Analytics settings.",
+      accept: "Agree", decline: "Decline"
+    },
+    ar: {
+      settings: "إعدادات الإحصاءات", settingsLabel: "إعدادات الموافقة على الإحصاءات", region: "اختيار الموافقة على الإحصاءات",
+      title: "إعدادات الإحصاءات",
+      description: "إذا وافقتِ، ستُجمع بيانات زيارات الصفحات لتحسين الموقع. لا يُرسل اسمك أو رقم هاتفك أو صورتك أو رسالتك في نموذج الحجز إلى Google. يمكنك تغيير اختيارك في أي وقت من إعدادات الإحصاءات.",
+      accept: "موافقة", decline: "رفض"
+    },
+    zh: {
+      settings: "数据统计设置", settingsLabel: "访问统计授权设置", region: "访问统计授权选项",
+      title: "访问统计设置",
+      description: "如果你同意，我们会收集页面访问数据以改进网站。预约表单中的姓名、电话、照片和留言不会发送给 Google。你可以随时在“数据统计设置”中更改选择。",
+      accept: "同意", decline: "拒绝"
+    }
+  }[locale] || {
+    settings: "تنظیمات آمار", settingsLabel: "تنظیمات رضایت آمار بازدید", region: "انتخاب رضایت آمار بازدید",
+    title: "تنظیمات آمار بازدید",
+    description: "در صورت موافقت، آمار بازدید صفحات برای بهبود سایت ثبت می‌شود. نام، شماره، عکس و متن فرم رزرو به Google ارسال نمی‌شود. انتخابت را هر زمان از «تنظیمات آمار» تغییر بده.",
+    accept: "موافقم", decline: "مخالفم"
+  };
+
   const measurementId = "G-60JSKEGQ5N";
   const consentKey = "lena_analytics_consent";
   const utmKeys = new Set(["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_id"]);
@@ -109,14 +150,14 @@
     const settingsButton = document.createElement("button");
     settingsButton.type = "button";
     settingsButton.className = "lena-analytics-settings";
-    settingsButton.textContent = "تنظیمات آمار";
-    settingsButton.setAttribute("aria-label", "تنظیمات رضایت آمار بازدید");
+    settingsButton.textContent = consentCopy.settings;
+    settingsButton.setAttribute("aria-label", consentCopy.settingsLabel);
 
     const panel = document.createElement("section");
     panel.className = "lena-analytics-consent";
     panel.setAttribute("role", "region");
-    panel.setAttribute("aria-label", "انتخاب رضایت آمار بازدید");
-    panel.innerHTML = '<div class="lena-analytics-copy"><strong>تنظیمات آمار بازدید</strong><p>در صورت موافقت، آمار بازدید صفحات برای بهبود سایت ثبت می‌شود. نام، شماره، عکس و متن فرم رزرو به Google ارسال نمی‌شود. انتخابت را هر زمان از «تنظیمات آمار» تغییر بده.</p></div><div class="lena-analytics-actions"><button type="button" data-analytics-choice="granted">موافقم</button><button type="button" data-analytics-choice="denied">مخالفم</button></div>';
+    panel.setAttribute("aria-label", consentCopy.region);
+    panel.innerHTML = `<div class="lena-analytics-copy"><strong>${consentCopy.title}</strong><p>${consentCopy.description}</p></div><div class="lena-analytics-actions"><button type="button" data-analytics-choice="granted">${consentCopy.accept}</button><button type="button" data-analytics-choice="denied">${consentCopy.decline}</button></div>`;
     panel.hidden = true;
     document.body.append(settingsButton, panel);
 
@@ -160,17 +201,7 @@
     }
   };
 
-  const bookingStatus = document.getElementById("bookingFormStatus");
-  if (bookingStatus) {
-    let leadTracked = false;
-    const observer = new MutationObserver(() => {
-      if (leadTracked || !bookingStatus.textContent.includes("درخواست با کد") || !bookingStatus.textContent.includes("ثبت شد")) return;
-      leadTracked = true;
-      window.LenaAnalytics.trackLead();
-      observer.disconnect();
-    });
-    observer.observe(bookingStatus, { childList: true, subtree: true, characterData: true });
-  }
+  window.addEventListener("lena:booking-submitted", () => window.LenaAnalytics.trackLead());
 
   buildConsentUi();
   startAnalytics();

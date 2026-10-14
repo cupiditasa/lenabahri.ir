@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow, noarchive">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; base-uri 'none'; form-action 'self'; object-src 'none'; frame-ancestors 'none'">
+  <meta name="referrer" content="no-referrer">
+  <title>Booking Requests Admin | Lena Bahri</title>
+  <link rel="stylesheet" href="/admin.css">
+  <script src="admin.js" defer></script>
+<link rel="canonical" href="https://lenabahri.ir/en/admin.html">
+  <link rel="alternate" hreflang="en" href="https://lenabahri.ir/en/admin.html">
+  <link rel="alternate" hreflang="ar" href="https://lenabahri.ir/ar/admin.html">
+  <link rel="alternate" hreflang="zh-CN" href="https://lenabahri.ir/zh/admin.html">
+  <link rel="alternate" hreflang="fa" href="https://lenabahri.ir/admin.html">
+  <link rel="alternate" hreflang="x-default" href="https://lenabahri.ir/admin.html">
+  <link rel="stylesheet" href="/assets/site-locale.css">
+</head>
+<body>
+  <main class="admin-shell">
+    <header class="admin-header">
+      <a class="admin-brand" href="/en/"><span class="brand-mark">LB</span><span><b>LENA BAHRI</b><small>Booking Requests</small></span></a>
+      <a class="back-link" href="/en/">Back to website <span>←</span></a>
+    </header>
+
+    <section class="login-panel" id="loginPanel" aria-labelledby="loginTitle">
+      <p class="eyebrow">Secure administrator sign-in</p>
+      <h1 id="loginTitle">Bookings Dashboard</h1>
+      <p class="muted">Sign in to your administrator account to view requests.</p>
+      <form id="loginForm" autocomplete="on">
+        <label>Username<input name="username" type="text" autocomplete="username" value="lena" required></label>
+        <label>Password<input name="password" type="password" autocomplete="current-password" required></label>
+        <button class="primary-button" type="submit">Sign in</button>
+      </form>
+      <p class="feedback" id="loginFeedback" role="status" aria-live="polite"></p>
+    </section>
+
+    <section class="dashboard" id="dashboard" hidden>
+      <div class="dashboard-title">
+        <div><p class="eyebrow">Studio Administration</p><h1>Booking Requests</h1><p class="muted">Submitted details and photos are visible only to the administrator.</p></div>
+        <button class="quiet-button" id="logoutButton" type="button">Sign Out</button>
+      </div>
+      <div class="summary" id="summary" aria-label="Request summary"></div>
+      <div class="toolbar">
+        <label class="search-label"><span class="sr-only">Search</span><input id="searchInput" type="search" placeholder="Search by name, phone or reference"></label>
+        <label class="filter-label"><span class="sr-only">Filter by status</span><select id="statusFilter"><option value="">All statuses</option><option value="pending">Pending</option><option value="contacted">Contacted</option><option value="confirmed">Confirmed</option><option value="completed">Completed</option><option value="cancelled">Cancelled</option></select></label>
+        <button class="quiet-button" id="refreshButton" type="button">Refresh</button>
+      </div>
+      <p class="feedback" id="dashboardFeedback" role="status" aria-live="polite"></p>
+      <div class="booking-list" id="bookingList"></div>
+    </section>
+    <footer>Lena Bahri private booking system · The active database is cleared after 90 days; technical recovery backups may remain for up to 7 additional days.</footer>
+  </main>
+<script src="/assets/site-locale.js" defer></script>
+</body>
+</html>

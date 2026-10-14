@@ -1,0 +1,25 @@
+[Unit]
+Description=Create a private Lena booking database backup
+After=local-fs.target
+
+[Service]
+Type=oneshot
+User=lenaapi
+Group=lenaapi
+WorkingDirectory=/opt/lena/booking-api
+EnvironmentFile=/etc/lena-booking-api.env
+Environment=BACKUP_DIR=/var/backups/lena-booking-api
+ExecStart=/opt/node-v24.21.0-linux-x64/bin/node /opt/lena/booking-api/scripts/backup-database.js
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+ReadWritePaths=/var/lib/lena-booking-api /var/backups/lena-booking-api
+MemoryMax=768M
+
+[Install]
+WantedBy=multi-user.target
