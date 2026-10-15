@@ -47,6 +47,15 @@
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
+  <url><loc>https://lenabahri.ir/people/branko-babic/</loc><changefreq>yearly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://lenabahri.ir/people/emil-ilhamoglu/</loc><changefreq>yearly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://lenabahri.ir/people/mohamed-hanafy/</loc><changefreq>yearly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://lenabahri.ir/people/katarina-lupsinova/</loc><changefreq>yearly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://lenabahri.ir/people/mersida-hodzic-ramic/</loc><changefreq>yearly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://lenabahri.ir/people/olga-hanafy/</loc><changefreq>yearly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://lenabahri.ir/people/nue-conceal/</loc><changefreq>yearly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://lenabahri.ir/people/juan-cordero/</loc><changefreq>yearly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://lenabahri.ir/people/d-chris/</loc><changefreq>yearly</changefreq><priority>0.5</priority></url>
   <url>
     <loc>https://lenabahri.ir/khabar/beauty/</loc>
     <lastmod>2026-10-14</lastmod>
@@ -787,5 +796,86 @@
   </url>
   <url>
     <loc>https://lenabahri.ir/zh/portfolio/videos/lip-shading-cosmetic-not-medical/</loc>
+  </url>
+  <url>
+    <loc>https://lenabahri.ir/en/people/branko-babic/</loc>
+  </url>
+  <url>
+    <loc>https://lenabahri.ir/en/people/emil-ilhamoglu/</loc>
+  </url>
+  <url>
+    <loc>https://lenabahri.ir/en/people/mohamed-hanafy/</loc>
+  </url>
+  <url>
+    <loc>https://lenabahri.ir/en/people/katarina-lupsinova/</loc>
+  </url>
+  <url>
+    <loc>https://lenabahri.ir/en/people/mersida-hodzic-ramic/</loc>
+  </url>
+  <url>
+    <loc>https://lenabahri.ir/en/people/olga-hanafy/</loc>
+  </url>
+  <url>
+    <loc>https://lenabahri.ir/en/people/nue-conceal/</loc>
+  </url>
+  <url>
+    <loc>https://lenabahri.ir/en/people/juan-cordero/</loc>
+  </url>
+  <url>
+    <loc>https://lenabahri.ir/en/people/d-chris/</loc>
+  </url>
+  <url>
+    <loc>https://lenabahri.ir/ar/people/branko-babic/</loc>
+  </url>
+  <url>
+    <loc>https://lenabahri.ir/ar/people/emil-ilhamoglu/</loc>
+  </url>
+  <url>
+    <loc>https://lenabahri.ir/ar/people/mohamed-hanafy/</loc>
+  </url>
+  <url>
+    <loc>https://lenabahri.ir/ar/people/katarina-lupsinova/</loc>
+  </url>
+  <url>
+    <loc>https://lenabahri.ir/ar/people/mersida-hodzic-ramic/</loc>
+  </url>
+  <url>
+    <loc>https://lenabahri.ir/ar/people/olga-hanafy/</loc>
+  </url>
+  <url>
+    <loc>https://lenabahri.ir/ar/people/nue-conceal/</loc>
+  </url>
+  <url>
+    <loc>https://lenabahri.ir/ar/people/juan-cordero/</loc>
+  </url>
+  <url>
+    <loc>https://lenabahri.ir/ar/people/d-chris/</loc>
+  </url>
+  <url>
+    <loc>https://lenabahri.ir/zh/people/branko-babic/</loc>
+  </url>
+  <url>
+    <loc>https://lenabahri.ir/zh/people/emil-ilhamoglu/</loc>
+  </url>
+  <url>
+    <loc>https://lenabahri.ir/zh/people/mohamed-hanafy/</loc>
+  </url>
+  <url>
+    <loc>https://lenabahri.ir/zh/people/katarina-lupsinova/</loc>
+  </url>
+  <url>
+    <loc>https://lenabahri.ir/zh/people/mersida-hodzic-ramic/</loc>
+  </url>
+  <url>
+    <loc>https://lenabahri.ir/zh/people/olga-hanafy/</loc>
+  </url>
+  <url>
+    <loc>https://lenabahri.ir/zh/people/nue-conceal/</loc>
+  </url>
+  <url>
+    <loc>https://lenabahri.ir/zh/people/juan-cordero/</loc>
+  </url>
+  <url>
+    <loc>https://lenabahri.ir/zh/people/d-chris/</loc>
   </url>
 </urlset>

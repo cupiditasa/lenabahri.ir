@@ -175,11 +175,18 @@ window.LENA_GALLERY = {
     { year: "", title: "مدال Master", subtitle: "نشان حرفه‌ای آرایش دائم", location: "", type: "medal", image: "assets/gallery/awards/award-18.jpg" }
   ],
 
-  people: [2, 3, 4, 5, 6, 7, 8, 10].map((number) => ({
-    image: `assets/gallery/people/event-${String(number).padStart(2, "0")}.jpg`,
-    title: "دیدار حرفه‌ای",
-    subtitle: "رویداد تخصصی و ارتباطات بین‌المللی"
-  }))
+  people: [
+    { name: "Branko Babić", image: "assets/gallery/people/event-02.jpg", href: "/people/branko-babic/", category: "دیدار حرفه‌ای", alt: "تصویر دیدار حرفه‌ای لنا بحری" },
+    { name: "Emil İlhamoğlu", image: "assets/gallery/people/event-03.jpg", href: "/people/emil-ilhamoglu/", category: "دیدار حرفه‌ای", alt: "تصویر دیدار حرفه‌ای لنا بحری" },
+    { name: "Mohamed Hanafy", image: "assets/gallery/people/event-04.jpg", href: "/people/mohamed-hanafy/", category: "دیدار حرفه‌ای", alt: "تصویر دیدار حرفه‌ای لنا بحری" },
+    { name: "Katarína Lupsinová", image: "assets/gallery/people/event-05.jpg", href: "/people/katarina-lupsinova/", category: "دیدار حرفه‌ای", alt: "تصویر دیدار حرفه‌ای لنا بحری" },
+    { name: "Brady Kirkpatrick", image: "assets/gallery/people/event-06.jpg", href: "/people/brady-kirkpatrick/", category: "دیدار حرفه‌ای", alt: "تصویر دیدار حرفه‌ای لنا بحری" },
+    { name: "Mersida Hodžić Ramić", image: "assets/gallery/people/event-07.jpg", href: "/people/mersida-hodzic-ramic/", category: "دیدار حرفه‌ای", alt: "تصویر دیدار حرفه‌ای لنا بحری" },
+    { name: "Olga Hanafy", image: "assets/gallery/people/meeting-07-olga-hanafy.jpg", href: "/people/olga-hanafy/", category: "دیدار حرفه‌ای", alt: "تصویر دیدار حرفه‌ای لنا بحری" },
+    { name: "Nue Conceal", image: "assets/gallery/people/meeting-08-nue-conceal.jpg", href: "/people/nue-conceal/", category: "دیدار حرفه‌ای", alt: "تصویر دیدار حرفه‌ای لنا بحری" },
+    { name: "Juan Cordero", image: "assets/gallery/people/meeting-09-juan-cordero.jpg", href: "/people/juan-cordero/", category: "دیدار حرفه‌ای", alt: "تصویر دیدار حرفه‌ای لنا بحری" },
+    { name: "D.Chris", image: "assets/gallery/people/meeting-10-d-chris.jpg", href: "/people/d-chris/", category: "دیدار حرفه‌ای", alt: "تصویر دیدار حرفه‌ای لنا بحری" }
+  ]
 };
 
 const normalizeGalleryAssets = (entry) => {

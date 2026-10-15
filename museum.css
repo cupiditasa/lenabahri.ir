@@ -707,12 +707,14 @@
 }
 .connections-rail::-webkit-scrollbar { display: none; }
 .connections-rail.is-dragging { cursor: grabbing; scroll-snap-type: none; }
-.connection-item { appearance: none; flex: 0 0 minmax(230px, 23vw); padding: 0; border: 0; background: #17110e; color: #fff; position: relative; height: 470px; overflow: hidden; cursor: inherit; scroll-snap-align: start; direction: rtl; }
+.connection-item { appearance: none; flex: 0 0 clamp(230px, 23vw, 330px); padding: 0; border: 0; background: #17110e; color: #fff; position: relative; height: 470px; overflow: hidden; cursor: pointer; scroll-snap-align: start; direction: rtl; text-decoration: none; display: block; }
 .connection-item img { width: 100%; height: 100%; object-fit: cover; transition: transform .65s; }
 .connection-item:hover img { transform: scale(1.04); }
 .connection-item::after { content: ""; position: absolute; inset: 0; background: linear-gradient(to top, rgba(8,5,4,.8), transparent 45%); }
-.connection-item span { position: absolute; z-index: 2; right: 15px; bottom: 13px; font-size: 10px; }
+.connection-item .connection-caption { position: absolute; z-index: 2; right: 15px; bottom: 13px; font-size: 10px; }
 .connection-item b { color: var(--museum-gold); font: 12px Georgia, serif; margin-left: 10px; }
+.connection-placeholder { position: absolute; inset: 0; display: grid; place-items: center; padding: 24px; background: radial-gradient(circle at 30% 25%, rgba(216,172,114,.2), transparent 35%), linear-gradient(140deg,#241b17,#0e0b09); color: rgba(216,172,114,.8); font: clamp(22px,4vw,44px) Georgia,serif; text-align: center; }
+.connection-item:focus-visible { outline: 2px solid var(--museum-gold); outline-offset: 4px; }
 .connections-controls { display: flex; align-items: center; justify-content: space-between; gap: 25px; padding: 5px clamp(20px, 7vw, 100px) 0; direction: rtl; }
 .connections-drag-hint { display: flex; align-items: center; gap: 10px; color: #796d65; font-size: 9px; }
 .connections-drag-hint i { width: 32px; height: 20px; border: 1px solid rgba(221,180,116,.35); border-radius: 99px; position: relative; }

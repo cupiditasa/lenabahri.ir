@@ -291,10 +291,10 @@
   const peopleGallery = document.querySelector("#peopleGallery");
   if (peopleGallery && data.people) {
     peopleGallery.innerHTML = data.people.map((person, index) => `
-      <button class="connection-item media-trigger" type="button" data-image="${person.image}" data-title="${person.title}">
-        <img src="${person.image}" alt="${person.title} ${index + 1}" loading="lazy">
-        <span><b>${String(index + 1).padStart(2, "0")}</b>${person.title}</span>
-      </button>
+      <a class="connection-item" href="${person.href}" aria-label="${person.name} — ${person.category}">
+        ${person.image ? `<img src="${person.image}" alt="${person.alt}" loading="lazy">` : `<span class="connection-placeholder" aria-hidden="true">${person.name}</span>`}
+        <span class="connection-caption"><b>${String(index + 1).padStart(2, "0")}</b>${person.name}</span>
+      </a>
     `).join("");
 
     const prevButton = document.querySelector("#peoplePrev");
