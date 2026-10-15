@@ -122,8 +122,32 @@ def source_schema(article):
         "articleSection": article["categoryLabel"],
         "keywords": article["keywords"],
         "inLanguage": "fa-IR",
-        "isBasedOn": article["sourceUrl"],
+        "isBasedOn": [source["url"] for source in source_records(article)],
     }
+
+
+def source_records(article):
+    records = article.get("sources")
+    if records is not None:
+        valid = [
+            source for source in records
+            if all(source.get(field) for field in ("label", "title", "url", "date"))
+        ]
+        unique_urls = {source["url"].rstrip("/") for source in valid}
+        unique_publishers = {source["label"].strip().casefold() for source in valid}
+        if len(unique_urls) < 2 or len(unique_publishers) < 2:
+            raise ValueError(f"Article {article.get('slug', '(unknown)')} needs at least two distinct sources.")
+        return valid
+    return [{
+        "label": article["sourceLabel"],
+        "title": article["sourceTitle"],
+        "url": article["sourceUrl"],
+        "date": article["sourceDate"],
+    }]
+
+def source_row_html(article, source):
+    date_html = f'<small>{esc(source["date"])}</small>' if article.get("sources") else ""
+    return f'<li><a href="{esc(source["url"])}" target="_blank" rel="noopener noreferrer">{esc(source["title"])} — {esc(source["label"])} <span aria-hidden="true">&nearr;</span></a>{date_html}</li>'
 
 
 def article_page(article, by_slug):
@@ -131,6 +155,12 @@ def article_page(article, by_slug):
     related = [by_slug[slug] for slug in article.get("related", []) if slug in by_slug and slug != article["slug"]]
     related_html = "".join(f'<a class="related-link" href="{NEWS_PATH}{esc(item["slug"])}"><span>{esc(item["categoryLabel"])}</span><strong>{esc(item["title"])}</strong></a>' for item in related[:3])
     sections = "".join(f'<section><h2>{esc(section["heading"])}</h2>{"".join(f"<p>{esc(paragraph)}</p>" for paragraph in section["paragraphs"])}</section>' for section in article["sections"])
+    source_rows = "".join(source_row_html(article, source) for source in source_records(article))
+    source_intro = (
+        f'این مطلب بر پایهٔ منبع زیر با کمک ابزارهای هوش مصنوعی برای پیش‌نویس و جمع‌بندی تحریریه تهیه شده است. تاریخ انتشار منبع: {esc(article["sourceDate"])}.'
+        if not article.get("sources")
+        else "این گزارش بر پایهٔ منابع زیر تهیه شده است. تاریخ هر منبع کنار پیوند آن آمده است؛ مطلب، جمع‌بندی اختصاصی تحریریه است و بازنشر متن منبع نیست."
+    )
     service_note = ""
     if article.get("serviceUrl"):
         service_note = f'''    <aside class="service-note"><div><span>خدمات مرتبط در شیراز</span><h2>{esc(article.get("serviceLabel") or "اطلاعات خدمات")}</h2><p>{esc(article.get("serviceContext") or "این گزارش عمومی جایگزین مشاورهٔ فردی نیست؛ جزئیات خدمات را جداگانه بررسی کنید.")}</p></div><a href="{esc(article["serviceUrl"])}">{esc(article.get("serviceLinkLabel") or "مشاهده جزئیات")} <span aria-hidden="true">←</span></a></aside>'''
@@ -153,7 +183,7 @@ def article_page(article, by_slug):
     <figure class="article-hero"><img src="{esc(article["image"])}" alt="{esc(article["imageAlt"])}" fetchpriority="high"><figcaption>تصویرسازی هوش مصنوعی اختصاصی برای این موضوع؛ نه عکس خبری و نه نمونه‌کار.</figcaption></figure>
     <p class="article-lead">{esc(article["lead"])}</p>
     {sections}
-    <aside class="source-note"><h2>منبع و تاریخ گزارش</h2><p>این مطلب بر پایهٔ منبع زیر با کمک ابزارهای هوش مصنوعی برای پیش‌نویس و جمع‌بندی تحریریه تهیه شده است. تاریخ انتشار منبع: {esc(article["sourceDate"])}.</p><a href="{esc(article["sourceUrl"])}" target="_blank" rel="noopener noreferrer">{esc(article["sourceTitle"])} — {esc(article["sourceLabel"])} <span aria-hidden="true">↗</span></a><small>این صفحه در {esc(date_label(PUBLISH_DATE))} به فارسی منتشر شده است. جزئیات روش تهیه و محدودیت‌های این گزارش را در <a href="{EDITORIAL_PATH}">اصول تحریریه</a> بخوانید.</small></aside>
+    <aside class="source-note"><h2>منبع و تاریخ گزارش</h2><p>{source_intro}</p><ol>{source_rows}</ol><small>این صفحه در {esc(date_label(PUBLISH_DATE))} به فارسی منتشر شده است. جزئیات روش تهیه و محدودیت‌های این گزارش را در <a href="{EDITORIAL_PATH}">اصول تحریریه</a> بخوانید.</small></aside>
 {service_note}
     <section class="related-section"><h2>مطالب مرتبط</h2><div class="related-grid">{related_html}</div></section>
   </article>

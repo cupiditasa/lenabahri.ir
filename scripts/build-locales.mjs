@@ -7,7 +7,9 @@ const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "
 const locales = ["en", "ar", "zh"];
 const htmlTokenPattern = /<!--[^]*?-->|<[^>]+>|[^<]+/g;
 const translatableAttributes = new Set(["alt", "aria-label", "content", "placeholder", "title", "value"]);
-const ignoredDirectories = new Set([".git", ".vps-tools", ".playwright-cli", "node_modules", "output", "en", "ar", "zh"]);
+const structuredDataMachineKeys = new Set(["@id", "url", "item", "image", "sameAs", "isBasedOn", "contentUrl", "embedUrl", "thumbnailUrl", "datePublished", "dateModified", "dateCreated", "datePosted", "uploadDate", "duration", "inLanguage"]);
+const ignoredDirectories = new Set([".git", ".locale-preview", ".vps-tools", ".playwright-cli", "node_modules", "output", "en", "ar", "zh"]);
+const ignoredPagePaths = new Set(["contact-me/index.html"]);
 
 function decodeEntities(value) {
   return value.replace(/&(#x[\da-f]+|#\d+|amp|apos|gt|lt|nbsp|quot);/gi, (entity, code) => {
@@ -63,11 +65,14 @@ function replaceLocalizedText(value, catalog, missing) {
   return `${leading}${encodeText(formatLocaleDigits(translation, catalog.locale))}${trailing}`;
 }
 
-function translateJson(value, catalog, missing) {
-  if (typeof value === "string") return replaceLocalizedText(value, catalog, missing);
-  if (Array.isArray(value)) return value.map((item) => translateJson(item, catalog, missing));
+function translateJson(value, catalog, missing, key = "") {
+  if (typeof value === "string") {
+    if (structuredDataMachineKeys.has(key) || /^(?:https?:\/\/|\/\/|\/)/i.test(value.trim()) || /^\d{4}-\d{2}-\d{2}(?:[Tt].*)?$/.test(value.trim()) || /^PT\d/i.test(value)) return value;
+    return replaceLocalizedText(value, catalog, missing);
+  }
+  if (Array.isArray(value)) return value.map((item) => translateJson(item, catalog, missing, key));
   if (value && typeof value === "object") {
-    return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, translateJson(item, catalog, missing)]));
+    return Object.fromEntries(Object.entries(value).map(([childKey, item]) => [childKey, translateJson(item, catalog, missing, childKey)]));
   }
   return value;
 }
@@ -92,6 +97,8 @@ function localizeStructuredData(value, sourcePath, locale, pageSet, readyPages) 
 function translateAttribute(tag, catalog, missing) {
   let translatedTag = tag.replace(/\b([\w:-]+)\s*=\s*(["'])(.*?)\2/gs, (match, name, quote, value) => {
     if (!translatableAttributes.has(name.toLowerCase())) return match;
+    const trimmedValue = value.trim();
+    if (name.toLowerCase() === "content" && (/^(?:https?:\/\/|\/\/|\/)/i.test(trimmedValue) || /^\d{4}-\d{2}-\d{2}(?:[Tt].*)?$/.test(trimmedValue))) return match;
     return `${name}=${quote}${replaceLocalizedText(value, catalog, missing)}${quote}`;
   });
   if (/property\s*=\s*["']og:locale["']/i.test(translatedTag)) {
@@ -230,14 +237,25 @@ const auditOnly = args.has("--audit");
 const allowPartial = args.has("--allow-partial");
 const listMissingIndex = process.argv.indexOf("--list-missing");
 const outputDirIndex = process.argv.indexOf("--output-dir");
+const pathPrefixIndex = process.argv.indexOf("--only-path-prefix");
+const requestedPathPrefix = pathPrefixIndex === -1 ? "" : (process.argv[pathPrefixIndex + 1] || "").replace(/\\/g, "/").replace(/^\/+|\/+$/g, "");
+if (pathPrefixIndex !== -1 && (!requestedPathPrefix || requestedPathPrefix.split("/").some((segment) => segment === "." || segment === ".."))) {
+  throw new Error("Use --only-path-prefix <project-relative-path>.");
+}
 const requestedOutput = outputDirIndex === -1 ? "." : process.argv[outputDirIndex + 1];
 if (!requestedOutput) throw new Error("Use --output-dir <directory>.");
 const outputRoot = path.resolve(projectRoot, requestedOutput);
 if (outputRoot !== projectRoot && !outputRoot.startsWith(`${projectRoot}${path.sep}`)) {
   throw new Error("Output directory must remain inside the project.");
 }
-const sourceFiles = (await walk(projectRoot)).sort();
+const sourceFiles = (await walk(projectRoot))
+  .filter((file) => !ignoredPagePaths.has(path.relative(projectRoot, file).split(path.sep).join("/")))
+  .sort();
 const relativePages = sourceFiles.map((file) => path.relative(projectRoot, file).split(path.sep).join("/"));
+const buildPages = requestedPathPrefix
+  ? relativePages.filter((relativePath) => relativePath === requestedPathPrefix || relativePath.startsWith(`${requestedPathPrefix}/`))
+  : relativePages;
+if (requestedPathPrefix && !buildPages.length) throw new Error(`No source pages match: ${requestedPathPrefix}`);
 const pageSet = new Set(relativePages);
 const runtimeTextValues = new Set();
 for (const relativePath of ["gallery-data.js", "service-videos.js"]) {
@@ -314,7 +332,7 @@ for (const locale of locales) {
 
 for (const locale of locales) {
   const languageOutput = path.join(outputRoot, locale);
-  for (const relativePath of relativePages) {
+  for (const relativePath of buildPages) {
     const missing = reports[locale].get(relativePath);
     if (missing.size && !allowPartial) continue;
     const html = await readFile(path.join(projectRoot, relativePath), "utf8");
