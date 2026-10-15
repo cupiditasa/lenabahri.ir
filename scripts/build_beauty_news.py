@@ -95,6 +95,7 @@ def doc_head(title, description, canonical, image, schema, og_type="website"):
   <meta name="twitter:description" content="{esc(description)}">
   <meta name="twitter:image" content="{esc(absolute(image))}">
   <link rel="stylesheet" href="/assets/beauty-news.css">
+  <link rel="stylesheet" href="/assets/news-community.css?v=20261014-1">
   <script type="application/ld+json">{json_ld(schema)}</script>
 </head>'''
 
@@ -187,9 +188,11 @@ def article_page(article, by_slug):
 {service_note}
     <section class="related-section"><h2>مطالب مرتبط</h2><div class="related-grid">{related_html}</div></section>
   </article>
+  <section class="news-community" data-news-community data-article-slug="{esc(article["slug"])}" aria-live="polite"></section>
   <p class="back-to-news"><a href="{NEWS_PATH}">← بازگشت به همهٔ خبرهای زیبایی</a></p>
 </main>
 <footer class="news-footer"><span>© {PUBLISH_DATE[:4]} {esc(PUBLISHER)}</span><a href="/">صفحهٔ اصلی</a><a href="/about.html">دربارهٔ لنا</a><a href="{EDITORIAL_PATH}">اصول تحریریه</a></footer>
+<script src="/assets/news-community.js?v=20261014-1" defer></script>
 </body></html>'''
     return doc_head(article["metaTitle"], article["description"], canonical, article["image"], schema, "article") + body
 

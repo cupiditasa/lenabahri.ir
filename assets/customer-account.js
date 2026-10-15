@@ -69,6 +69,17 @@ function lockButton(button, locked) {
   if (button) button.disabled = locked;
 }
 
+function returnToNewsAfterLogin() {
+  const requested = new URLSearchParams(window.location.search).get("returnTo");
+  if (!requested) return;
+  let destination;
+  try { destination = new URL(requested, window.location.origin); } catch { return; }
+  if (destination.origin !== window.location.origin
+    || !/^\/(?:en\/|ar\/|zh\/)?khabar\/beauty\/[a-z0-9]+(?:-[a-z0-9]+)*\/?$/.test(destination.pathname)) return;
+  try { sessionStorage.setItem("lena-news-tutorial-pending", "1"); } catch {}
+  window.location.assign(destination.href);
+}
+
 function startResendCountdown(seconds = 60) {
   window.clearInterval(resendTimer);
   let remaining = seconds;
@@ -156,6 +167,7 @@ async function loadCustomer() {
   try {
     const data = await api("/api/customer/me");
     showCustomer(data);
+    returnToNewsAfterLogin();
   } catch (error) {
     loginView.hidden = false;
     customerView.hidden = true;

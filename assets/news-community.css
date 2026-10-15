@@ -1,0 +1,41 @@
+.news-community{margin:34px 0 12px;padding:clamp(20px,4vw,36px);border:1px solid var(--line);background:linear-gradient(145deg,#1b1411,#110d0c);color:var(--ink)}
+.community-title,.community-comments-title{margin:0 0 8px;color:var(--gold);font-size:22px}
+.community-intro,.community-dialog-copy{margin:0 0 20px;color:var(--muted);font-size:14px}
+.community-reactions{display:flex;flex-wrap:wrap;gap:12px;margin:20px 0}
+.community-reaction,.community-signin-comment,.community-submit,.community-dialog-primary,.community-dialog-secondary{min-height:44px;border:1px solid var(--line);padding:9px 17px;background:#201713;color:var(--ink);font:inherit;cursor:pointer;transition:background .18s,border-color .18s,color .18s}
+.community-reaction{display:flex;align-items:center;gap:9px}
+.community-reaction:hover,.community-reaction.is-selected,.community-signin-comment:hover,.community-submit:hover{border-color:var(--gold);background:rgba(216,172,114,.12);color:var(--gold)}
+.community-reaction-icon,.community-reaction-count{color:var(--gold)}
+.community-reaction-count{min-width:1.5em;text-align:center}
+.community-reaction:focus-visible,.community-signin-comment:focus-visible,.community-submit:focus-visible,.community-dialog button:focus-visible,.community-dialog a:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
+.community-reaction:disabled,.community-submit:disabled{opacity:.6;cursor:wait}
+.community-status{min-height:1.5em;margin:6px 0;color:#cdbda9;font-size:13px}
+.community-status[data-kind=error]{color:#f0a69b}.community-status[data-kind=success]{color:#a7d8b0}
+.community-comments{margin-top:26px;padding-top:22px;border-top:1px solid var(--line)}
+.community-comments-title{font-size:19px}
+.community-comment-form{display:grid;gap:12px;margin:16px 0 22px}
+.community-comment-label{color:#ded4cb;font-size:13px}
+.community-comment-input{width:100%;min-height:100px;resize:vertical;border:1px solid var(--line);padding:12px;background:#0e0b0a;color:var(--ink);font:inherit;line-height:1.8}
+.community-comment-input:focus-visible,.community-consent input:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.community-comment-input::placeholder{color:#8f8177}
+.community-consent{display:flex;align-items:flex-start;gap:9px;color:var(--muted);font-size:12px;line-height:1.8}
+.community-consent input{margin-top:7px;accent-color:var(--gold)}
+.community-submit{justify-self:start;background:var(--gold);color:#1b120c;border-color:var(--gold)}
+.community-empty{color:var(--muted);font-size:13px}
+.community-comment-list{display:grid;gap:12px;margin:0;padding:0;list-style:none}
+.community-comment{padding:14px 16px;border:1px solid rgba(216,172,114,.13);background:rgba(7,6,5,.36)}
+.community-comment-meta{display:flex;justify-content:space-between;gap:12px;color:var(--gold);font-size:12px}
+.community-comment-meta time{color:var(--muted)}
+.community-comment-body{margin:7px 0 0;color:#ded4cb;font-size:14px;white-space:pre-wrap;overflow-wrap:anywhere}
+.community-dialog{width:min(520px,calc(100% - 28px));max-height:min(82vh,650px);padding:clamp(22px,5vw,36px);border:1px solid var(--gold);background:#17110f;color:var(--ink);box-shadow:0 24px 80px #000b}
+.community-dialog::backdrop{background:rgba(0,0,0,.72);backdrop-filter:blur(4px)}
+.community-dialog-title{margin:0 0 12px;color:var(--gold);font-size:23px}
+.community-dialog-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:23px}
+.community-dialog-primary,.community-dialog-secondary{display:inline-flex;align-items:center;justify-content:center;text-decoration:none}
+.community-dialog-primary{border-color:var(--gold);background:var(--gold);color:#1b120c}
+.community-dialog-secondary{color:var(--ink)}
+.community-tutorial-step{margin:20px 0;padding:17px;border-inline-start:2px solid var(--gold);background:rgba(216,172,114,.08);line-height:2}
+.community-tutorial-step strong{display:inline-block;margin-bottom:5px;color:var(--gold)}
+[dir=rtl] .community-comment-meta{flex-direction:row}
+@media(max-width:520px){.community-reactions{display:grid;grid-template-columns:1fr}.community-reaction{justify-content:flex-start}.community-dialog-actions{display:grid;grid-template-columns:1fr}.community-dialog-actions>*{width:100%}}
+@media(prefers-reduced-motion:reduce){.community-reaction,.community-signin-comment,.community-submit{transition:none}}

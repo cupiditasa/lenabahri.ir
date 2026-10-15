@@ -17,7 +17,7 @@ test("SQLite adapter applies existing migrations and preserves private photo blo
     assert.deepEqual([...row.photo_data], [1, 2, 3]);
     assert.equal(row.photo_content_type, "image/png");
     const migrationRows = await database.prepare("SELECT id FROM schema_migrations ORDER BY id").all();
-    assert.deepEqual(migrationRows.results.map((migration) => migration.id), ["0001_bookings.sql", "0002_booking_photo_blobs.sql", "0003_customer_accounts.sql"]);
+    assert.deepEqual(migrationRows.results.map((migration) => migration.id), ["0001_bookings.sql", "0002_booking_photo_blobs.sql", "0003_customer_accounts.sql", "0004_news_community.sql"]);
     const profileTable = await database.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'customer_profiles'").first();
     assert.equal(profileTable.name, "customer_profiles");
   } finally {
@@ -126,6 +126,24 @@ test("customer account endpoints work against SQLite and isolate profile photos"
     const privatePhoto = await worker.fetch(new Request("https://lenabahri.ir/api/customer/photo", { headers: { Cookie: cookie } }), env);
     assert.equal(privatePhoto.status, 200);
     assert.deepEqual(Array.from(new Uint8Array(await privatePhoto.arrayBuffer())), [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00]);
+
+    const reaction = await worker.fetch(new Request("https://lenabahri.ir/api/customer/news/ss27-runway-beauty-2026/reaction", {
+      method: "PUT",
+      headers: { Cookie: cookie, Origin: "https://lenabahri.ir", "Content-Type": "application/json" },
+      body: JSON.stringify({ reaction: "not-for-me" })
+    }), env);
+    assert.equal(reaction.status, 200);
+    const comment = await worker.fetch(new Request("https://lenabahri.ir/api/customer/news/ss27-runway-beauty-2026/comments", {
+      method: "POST",
+      headers: { Cookie: cookie, Origin: "https://lenabahri.ir", "Content-Type": "application/json", "CF-Connecting-IP": "192.0.2.88" },
+      body: JSON.stringify({ body: "A thoughtful comment", consent: true })
+    }), env);
+    assert.equal(comment.status, 201);
+    const community = await worker.fetch(new Request("https://lenabahri.ir/api/news/ss27-runway-beauty-2026/community"), env);
+    const communityData = await community.json();
+    assert.deepEqual(communityData.counts, { resonated: 0, "not-for-me": 1 });
+    assert.equal(communityData.comments[0].body, "A thoughtful comment");
+    assert.equal(JSON.stringify(communityData).includes("09123456789"), false);
   } finally {
     globalThis.fetch = originalFetch;
     database.close();

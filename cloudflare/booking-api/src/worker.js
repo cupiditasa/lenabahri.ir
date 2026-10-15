@@ -311,6 +311,68 @@ async function logoutCustomer(request) {
   return json({ ok: true }, 200, { "Set-Cookie": "lena_customer_session=; Path=/api/customer; Max-Age=0; HttpOnly; Secure; SameSite=Strict" });
 }
 
+function validArticleSlug(value) {
+  return /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value) && value.length <= 120;
+}
+
+async function newsCommunity(_request, env, slug) {
+  if (!validArticleSlug(slug)) return json({ error: "شناسهٔ خبر معتبر نیست." }, 400);
+  const [reactions, comments] = await Promise.all([
+    env.DB.prepare("SELECT reaction, COUNT(*) AS count FROM news_reactions WHERE article_slug = ? GROUP BY reaction").bind(slug).all(),
+    env.DB.prepare("SELECT id, body, created_at FROM news_comments WHERE article_slug = ? ORDER BY created_at DESC LIMIT 50").bind(slug).all()
+  ]);
+  const counts = { resonated: 0, "not-for-me": 0 };
+  for (const row of reactions.results || []) {
+    if (Object.hasOwn(counts, row.reaction)) counts[row.reaction] = Number(row.count) || 0;
+  }
+  return json({ counts, comments: comments.results || [] });
+}
+
+async function customerNewsReaction(request, env, slug) {
+  if (!validArticleSlug(slug)) return json({ error: "شناسهٔ خبر معتبر نیست." }, 400);
+  const phone = await customerSessionPhone(request, env);
+  if (!phone) return json({ error: "برای همراهی با خبر وارد حساب شوید." }, 401);
+  if (request.method === "GET") {
+    const row = await env.DB.prepare("SELECT reaction FROM news_reactions WHERE article_slug = ? AND phone = ?").bind(slug, phone).first();
+    return json({ reaction: row?.reaction || null });
+  }
+  if (!assertSameOrigin(request)) return json({ error: "مبدأ درخواست معتبر نیست." }, 403);
+  if (!await rateLimitIdentity(env, "news-reaction", phone, 60, 30)) return json({ error: "تعداد واکنش‌ها زیاد است؛ کمی بعد دوباره تلاش کنید." }, 429);
+  if (request.method === "DELETE") {
+    await env.DB.prepare("DELETE FROM news_reactions WHERE article_slug = ? AND phone = ?").bind(slug, phone).run();
+    return json({ ok: true, reaction: null });
+  }
+  let data;
+  try { data = await request.json(); } catch { return json({ error: "درخواست نامعتبر است." }, 400); }
+  if (!["resonated", "not-for-me"].includes(data.reaction)) return json({ error: "واکنش انتخاب‌شده معتبر نیست." }, 400);
+  const now = Math.floor(Date.now() / 1000);
+  await env.DB.prepare(
+    "INSERT INTO news_reactions (article_slug, phone, reaction, created_at, updated_at) VALUES (?, ?, ?, ?, ?) ON CONFLICT(article_slug, phone) DO UPDATE SET reaction = excluded.reaction, updated_at = excluded.updated_at"
+  ).bind(slug, phone, data.reaction, now, now).run();
+  return json({ ok: true, reaction: data.reaction });
+}
+
+async function createNewsComment(request, env, slug) {
+  if (!validArticleSlug(slug)) return json({ error: "شناسهٔ خبر معتبر نیست." }, 400);
+  if (!assertSameOrigin(request)) return json({ error: "مبدأ درخواست معتبر نیست." }, 403);
+  const phone = await customerSessionPhone(request, env);
+  if (!phone) return json({ error: "برای نوشتن دیدگاه وارد حساب شوید." }, 401);
+  if (!await rateLimit(request, env, "news-comment-ip", 3600, 30)
+    || !await rateLimitIdentity(env, "news-comment-customer", phone, 3600, 5)) {
+    return json({ error: "تعداد دیدگاه‌ها زیاد است؛ کمی بعد دوباره تلاش کنید." }, 429);
+  }
+  let data;
+  try { data = await request.json(); } catch { return json({ error: "درخواست نامعتبر است." }, 400); }
+  const body = typeof data.body === "string" ? clean(data.body, 1000) : "";
+  if (body.length < 2 || data.consent !== true) return json({ error: "متن دیدگاه و تأیید نمایش عمومی آن لازم است." }, 400);
+  const now = Math.floor(Date.now() / 1000);
+  const comment = { id: crypto.randomUUID(), article_slug: slug, body, created_at: now };
+  await env.DB.prepare(
+    "INSERT INTO news_comments (id, article_slug, phone, body, consent_at, created_at) VALUES (?, ?, ?, ?, ?, ?)"
+  ).bind(comment.id, slug, phone, body, now, now).run();
+  return json({ ok: true, comment }, 201);
+}
+
 async function login(request, env) {
   if (!assertSameOrigin(request)) return json({ error: "مبدأ درخواست معتبر نیست." }, 403);
   if (!env.ADMIN_PASSWORD_HASH || !env.SESSION_SECRET) return json({ error: "Admin credentials are not configured." }, 503);
@@ -436,6 +498,8 @@ async function cleanup(env) {
   const cutoff = now - BOOKING_RETENTION_SECONDS;
   await env.DB.prepare("DELETE FROM bookings WHERE created_at < ?").bind(cutoff).run();
   await env.DB.prepare("DELETE FROM customer_profiles WHERE created_at < ?").bind(cutoff).run();
+  await env.DB.prepare("DELETE FROM news_reactions WHERE updated_at < ?").bind(cutoff).run();
+  await env.DB.prepare("DELETE FROM news_comments WHERE created_at < ?").bind(cutoff).run();
   await env.DB.prepare("DELETE FROM customer_otp_codes WHERE expires_at < ?").bind(now).run();
   await env.DB.prepare("DELETE FROM rate_limits WHERE window_start < ?").bind(now - 7200).run();
 }
@@ -452,6 +516,12 @@ export default {
     if (path === "/api/customer/profile" && request.method === "POST") return updateCustomerProfile(request, env);
     if (path === "/api/customer/photo" && request.method === "GET") return customerPhoto(request, env);
     if (path === "/api/customer/logout" && request.method === "POST") return logoutCustomer(request);
+    const publicCommunityMatch = path.match(/^\/api\/news\/([a-z0-9-]+)\/community$/);
+    if (publicCommunityMatch && request.method === "GET") return newsCommunity(request, env, publicCommunityMatch[1]);
+    const customerReactionMatch = path.match(/^\/api\/customer\/news\/([a-z0-9-]+)\/reaction$/);
+    if (customerReactionMatch && ["GET", "PUT", "DELETE"].includes(request.method)) return customerNewsReaction(request, env, customerReactionMatch[1]);
+    const customerCommentsMatch = path.match(/^\/api\/customer\/news\/([a-z0-9-]+)\/comments$/);
+    if (customerCommentsMatch && request.method === "POST") return createNewsComment(request, env, customerCommentsMatch[1]);
     if (path === "/api/admin/login" && request.method === "POST") return login(request, env);
     if (path === "/api/admin/logout" && request.method === "POST") {
       if (!assertSameOrigin(request)) return json({ error: "مبدأ درخواست معتبر نیست." }, 403);

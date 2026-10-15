@@ -64,6 +64,35 @@ class MockStatement {
       });
       return { meta: { changes: 1 } };
     }
+    if (this.sql.startsWith("INSERT INTO news_reactions")) {
+      const [article_slug, phone, reaction, created_at, updated_at] = this.values;
+      const key = `${article_slug}:${phone}`;
+      const previous = db.newsReactions.get(key);
+      db.newsReactions.set(key, { article_slug, phone, reaction, created_at: previous?.created_at || created_at, updated_at });
+      return { meta: { changes: 1 } };
+    }
+    if (this.sql.startsWith("DELETE FROM news_reactions WHERE article_slug")) {
+      return { meta: { changes: Number(db.newsReactions.delete(`${this.values[0]}:${this.values[1]}`)) } };
+    }
+    if (this.sql.startsWith("INSERT INTO news_comments")) {
+      const [id, article_slug, phone, body, consent_at, created_at] = this.values;
+      db.newsComments.set(id, { id, article_slug, phone, body, consent_at, created_at });
+      return { meta: { changes: 1 } };
+    }
+    if (this.sql.startsWith("DELETE FROM news_reactions WHERE updated_at")) {
+      let changes = 0;
+      for (const [key, reaction] of db.newsReactions) {
+        if (reaction.updated_at < this.values[0]) changes += Number(db.newsReactions.delete(key));
+      }
+      return { meta: { changes } };
+    }
+    if (this.sql.startsWith("DELETE FROM news_comments WHERE created_at")) {
+      let changes = 0;
+      for (const [id, comment] of db.newsComments) {
+        if (comment.created_at < this.values[0]) changes += Number(db.newsComments.delete(id));
+      }
+      return { meta: { changes } };
+    }
     if (this.sql.startsWith("DELETE FROM customer_profiles WHERE created_at")) {
       let changes = 0;
       for (const [phone, profile] of db.profiles) {
@@ -95,6 +124,20 @@ class MockStatement {
     return { meta: { changes: 0 } };
   }
   async all() {
+    if (this.sql.startsWith("SELECT reaction, COUNT(*) AS count FROM news_reactions")) {
+      const counts = new Map();
+      for (const reaction of this.database.newsReactions.values()) {
+        if (reaction.article_slug === this.values[0]) counts.set(reaction.reaction, (counts.get(reaction.reaction) || 0) + 1);
+      }
+      return { results: [...counts].map(([reaction, count]) => ({ reaction, count })) };
+    }
+    if (this.sql.startsWith("SELECT id, body, created_at FROM news_comments")) {
+      return { results: [...this.database.newsComments.values()]
+        .filter((comment) => comment.article_slug === this.values[0])
+        .sort((left, right) => right.created_at - left.created_at)
+        .slice(0, 50)
+        .map(({ id, body, created_at }) => ({ id, body, created_at })) };
+    }
     if (this.sql.startsWith("SELECT status, COUNT(*)")) {
       const counts = new Map();
       for (const booking of this.database.bookings.values()) counts.set(booking.status, (counts.get(booking.status) || 0) + 1);
@@ -117,6 +160,10 @@ class MockStatement {
     return { results };
   }
   async first() {
+    if (this.sql.startsWith("SELECT reaction FROM news_reactions")) {
+      const reaction = this.database.newsReactions.get(`${this.values[0]}:${this.values[1]}`);
+      return reaction ? { reaction: reaction.reaction } : null;
+    }
     if (this.sql.startsWith("SELECT code_hash, expires_at, attempts FROM customer_otp_codes")) {
       return this.database.otpCodes.get(this.values[0]) || null;
     }
@@ -144,7 +191,7 @@ class MockStatement {
 }
 
 class MockDatabase {
-  constructor() { this.bookings = new Map(); this.limits = new Map(); this.otpCodes = new Map(); this.profiles = new Map(); }
+  constructor() { this.bookings = new Map(); this.limits = new Map(); this.otpCodes = new Map(); this.profiles = new Map(); this.newsReactions = new Map(); this.newsComments = new Map(); }
   prepare(sql) { return new MockStatement(this, sql); }
 }
 
@@ -168,6 +215,17 @@ function bookingForm({ consent = "on", photo = true } = {}) {
   if (consent) form.set("consent", consent);
   if (photo) form.set("photo", new File([Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0])], "test.png", { type: "image/png" }));
   return form;
+}
+
+async function customerCookie(phone, secret) {
+  const expires = Math.floor(Date.now() / 1000) + 3600;
+  const nonce = crypto.randomUUID();
+  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const signature = new Uint8Array(await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(`${expires}.${phone}.${nonce}`)));
+  const binary = Array.from(signature, (byte) => String.fromCharCode(byte)).join("");
+  const encodedSignature = btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  const phoneToken = btoa(phone).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  return `lena_customer_session=${expires}.${phoneToken}.${nonce}.${encodedSignature}`;
 }
 
 test("health endpoint responds without exposing configuration", async () => {
@@ -247,12 +305,16 @@ test("retention cleanup removes expired database rows and their stored photos", 
   const expiredAt = Math.floor(Date.now() / 1000) - 91 * day;
   env.DB.bookings.set(id, { id, photo_data: new ArrayBuffer(12), created_at: expiredAt });
   env.DB.profiles.set("09120000000", { phone: "09120000000", created_at: expiredAt });
+  env.DB.newsReactions.set("old-story:09120000000", { article_slug: "old-story", phone: "09120000000", reaction: "resonated", updated_at: expiredAt });
+  env.DB.newsComments.set("old-comment", { id: "old-comment", created_at: expiredAt });
   env.DB.otpCodes.set("09121111111", { phone: "09121111111", expires_at: Math.floor(Date.now() / 1000) - 1 });
   const tasks = [];
   await worker.scheduled({}, env, { waitUntil: (task) => tasks.push(task) });
   await Promise.all(tasks);
   assert.equal(env.DB.bookings.has(id), false);
   assert.equal(env.DB.profiles.has("09120000000"), false);
+  assert.equal(env.DB.newsReactions.has("old-story:09120000000"), false);
+  assert.equal(env.DB.newsComments.has("old-comment"), false);
   assert.equal(env.DB.otpCodes.has("09121111111"), false);
 });
 
@@ -386,4 +448,50 @@ test("customer OTP rejects cross-origin requests and unconfigured SMS delivery",
   }), env);
   assert.equal(unavailable.status, 503);
   assert.equal(env.DB.otpCodes.size, 0);
+});
+
+test("news reactions and public comments require a customer session and never expose account details", async () => {
+  const env = { DB: new MockDatabase(), SESSION_SECRET: "test-session-signing-key-not-for-production", RATE_LIMIT_SALT: "test-rate-limit-salt" };
+  const slug = "ss27-runway-beauty-2026";
+  const reactionPath = `/api/customer/news/${slug}/reaction`;
+  const commentPath = `/api/customer/news/${slug}/comments`;
+  const communityPath = `/api/news/${slug}/community`;
+  const noLogin = await worker.fetch(makeRequest(commentPath, {
+    method: "POST", body: JSON.stringify({ body: "متن دیدگاه", consent: true }),
+    headers: { Origin: "https://lenabahri.ir", "Content-Type": "application/json" }
+  }), env);
+  assert.equal(noLogin.status, 401);
+
+  const cookie = await customerCookie("09123456789", env.SESSION_SECRET);
+  const foreignWrite = await worker.fetch(makeRequest(reactionPath, {
+    method: "PUT", body: JSON.stringify({ reaction: "resonated" }),
+    headers: { Cookie: cookie, Origin: "https://attacker.invalid", "Content-Type": "application/json" }
+  }), env);
+  assert.equal(foreignWrite.status, 403);
+
+  const saveReaction = await worker.fetch(makeRequest(reactionPath, {
+    method: "PUT", body: JSON.stringify({ reaction: "resonated" }),
+    headers: { Cookie: cookie, Origin: "https://lenabahri.ir", "Content-Type": "application/json", "CF-Connecting-IP": "192.0.2.31" }
+  }), env);
+  assert.equal(saveReaction.status, 200);
+  const savedReaction = await worker.fetch(makeRequest(reactionPath, { headers: { Cookie: cookie } }), env);
+  assert.equal((await savedReaction.json()).reaction, "resonated");
+  const publicCounts = await worker.fetch(makeRequest(communityPath), env);
+  assert.deepEqual((await publicCounts.json()).counts, { resonated: 1, "not-for-me": 0 });
+
+  const missingConsent = await worker.fetch(makeRequest(commentPath, {
+    method: "POST", body: JSON.stringify({ body: "دیدگاه معتبر", consent: false }),
+    headers: { Cookie: cookie, Origin: "https://lenabahri.ir", "Content-Type": "application/json", "CF-Connecting-IP": "192.0.2.31" }
+  }), env);
+  assert.equal(missingConsent.status, 400);
+  const savedComment = await worker.fetch(makeRequest(commentPath, {
+    method: "POST", body: JSON.stringify({ body: "دیدگاه با <script> متن ساده است", consent: true }),
+    headers: { Cookie: cookie, Origin: "https://lenabahri.ir", "Content-Type": "application/json", "CF-Connecting-IP": "192.0.2.31" }
+  }), env);
+  assert.equal(savedComment.status, 201);
+  const community = await worker.fetch(makeRequest(communityPath), env);
+  const communityData = await community.json();
+  assert.equal(communityData.comments.length, 1);
+  assert.match(communityData.comments[0].body, /<script>/);
+  assert.equal(JSON.stringify(communityData).includes("09123456789"), false);
 });
