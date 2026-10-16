@@ -98,7 +98,10 @@ function translateAttribute(tag, catalog, missing) {
   let translatedTag = tag.replace(/\b([\w:-]+)\s*=\s*(["'])(.*?)\2/gs, (match, name, quote, value) => {
     if (!translatableAttributes.has(name.toLowerCase())) return match;
     const trimmedValue = value.trim();
-    if (name.toLowerCase() === "content" && (/^(?:https?:\/\/|\/\/|\/)/i.test(trimmedValue) || /^\d{4}-\d{2}-\d{2}(?:[Tt].*)?$/.test(trimmedValue))) return match;
+    if (name.toLowerCase() === "content") {
+      const metaName = tag.match(/\bname\s*=\s*(["'])(.*?)\1/i)?.[2]?.toLowerCase();
+      if (["viewport", "theme-color"].includes(metaName) || /^(?:https?:\/\/|\/\/|\/)/i.test(trimmedValue) || /^\d{4}-\d{2}-\d{2}(?:[Tt].*)?$/.test(trimmedValue)) return match;
+    }
     return `${name}=${quote}${replaceLocalizedText(value, catalog, missing)}${quote}`;
   });
   if (/property\s*=\s*["']og:locale["']/i.test(translatedTag)) {
@@ -124,6 +127,11 @@ function sourceRoute(sourcePath) {
   if (slashPath === "index.html") return "/";
   if (slashPath.endsWith("/index.html")) return `/${slashPath.slice(0, -"index.html".length)}`;
   return `/${slashPath}`;
+}
+
+function ensureTwitterCard(html) {
+  if (/\bname=["']twitter:card["']/i.test(html) || !/\bproperty=["']og:image["']/i.test(html)) return html;
+  return html.replace(/<\/head>/i, '<meta name="twitter:card" content="summary_large_image">\n</head>');
 }
 
 function normalizedRoute(route) {
@@ -176,7 +184,9 @@ function rewriteRelativeResources(tag, sourcePath) {
     if (resourcePath === ".." || resourcePath.startsWith("../")) return match;
       const versionedResourcePath = resourcePath
        .replace(/^script\.js(?:\?[^#]*)?/, "script.js?v=20261014-customer-1")
-       .replace(/^gallery-data\.js(?:\?[^#]*)?/, "gallery-data.js?v=20261014-2")
+       .replace(/^gallery-data\.js(?:\?[^#]*)?/, "gallery-data.js?v=20261014-people-1")
+       .replace(/^museum\.js(?:\?[^#]*)?/, "museum.js?v=20261014-people-1")
+       .replace(/^museum\.css(?:\?[^#]*)?/, "museum.css?v=20261014-people-1")
       .replace(/^service-videos\.js(?:\?[^#]*)?/, "service-videos.js?v=20261014-2");
     return `${attribute}=${quote}/${versionedResourcePath}${quote}`;
   });
@@ -221,19 +231,35 @@ function transformHtml(html, sourcePath, locale, catalog, pageSet, readyPages, m
     .filter((code) => readyPages.has(`${code}:${sourcePath}`))
     .map((code) => `<link rel="alternate" hreflang="${code === "zh" ? "zh-CN" : code}" href="https://lenabahri.ir${routeFor(sourcePath, code)}">`)
     .join("\n  ");
-  const faAlternate = `<link rel="alternate" hreflang="fa" href="https://lenabahri.ir${sourceRoute(sourcePath)}">`;
-  const defaultAlternate = `<link rel="alternate" hreflang="x-default" href="https://lenabahri.ir${sourceRoute(sourcePath)}">`;
-  const headLinks = `<link rel="canonical" href="${canonical}">\n  ${alternates}\n  ${faAlternate}\n  ${defaultAlternate}\n  <link rel="stylesheet" href="/assets/site-locale.css">`;
+  const hasLocalizedAlternates = locales.some((code) => readyPages.has(`${code}:${sourcePath}`));
+  const faAlternate = hasLocalizedAlternates ? `<link rel="alternate" hreflang="fa" href="https://lenabahri.ir${sourceRoute(sourcePath)}">` : "";
+  const defaultAlternate = hasLocalizedAlternates ? `<link rel="alternate" hreflang="x-default" href="https://lenabahri.ir${sourceRoute(sourcePath)}">` : "";
+  const headLinks = `<link rel="canonical" href="${canonical}">\n  ${alternates}${faAlternate ? `\n  ${faAlternate}` : ""}${defaultAlternate ? `\n  ${defaultAlternate}` : ""}\n  <link rel="stylesheet" href="/assets/site-locale.css">`;
   result = result.replace(/\s*<link\b[^>]*rel=["'](?:canonical|alternate)["'][^>]*>/gi, "");
   result = result.replace(/<\/head>/i, `${headLinks}\n</head>`);
   if (!/src=["'][^"']*assets\/site-locale\.js/i.test(result)) {
     result = result.replace(/<\/body>/i, '<script src="/assets/site-locale.js?v=20261014-1" defer></script>\n</body>');
   }
-  return result;
+  return ensureTwitterCard(result);
+}
+
+function addSourceAlternates(html, sourcePath, readyPages) {
+  const alternatePattern = /\s*<link\b(?=[^>]*\brel=["'][^"']*\balternate\b[^"']*["'])(?=[^>]*\bhreflang=)[^>]*>/gi;
+  const cleaned = html.replace(alternatePattern, "");
+  const localized = locales
+    .filter((code) => readyPages.has(`${code}:${sourcePath}`))
+    .map((code) => `<link rel="alternate" hreflang="${code === "zh" ? "zh-CN" : code}" href="https://lenabahri.ir${routeFor(sourcePath, code)}">`);
+  if (!localized.length) return cleaned;
+  const href = `https://lenabahri.ir${sourceRoute(sourcePath)}`;
+  localized.push(`<link rel="alternate" hreflang="fa" href="${href}">`);
+  localized.push(`<link rel="alternate" hreflang="x-default" href="${href}">`);
+  return cleaned.replace(/<\/head>/i, `${localized.join("\n  ")}\n</head>`);
 }
 
 const args = new Set(process.argv.slice(2));
 const auditOnly = args.has("--audit");
+const sourceAlternatesOnly = args.has("--source-alternates-only");
+const twitterCardsOnly = args.has("--twitter-cards-only");
 const allowPartial = args.has("--allow-partial");
 const listMissingIndex = process.argv.indexOf("--list-missing");
 const outputDirIndex = process.argv.indexOf("--output-dir");
@@ -326,8 +352,42 @@ if (incomplete.length && !allowPartial) {
 const readyPages = new Set();
 for (const locale of locales) {
   for (const [page, missing] of reports[locale]) {
-    if (!missing.size) readyPages.add(`${locale}:${page}`);
+    const source = await readFile(path.join(projectRoot, page), "utf8");
+    const noindex = /<meta\b[^>]*\bname=["']robots["'][^>]*\bcontent=["'][^"']*\bnoindex\b/i.test(source);
+    if (!missing.size && !noindex) readyPages.add(`${locale}:${page}`);
   }
+}
+
+if (twitterCardsOnly) {
+  if (outputRoot !== projectRoot) throw new Error("--twitter-cards-only requires the project root as output.");
+  const localizedFiles = (await Promise.all(locales.map((locale) => walk(path.join(projectRoot, locale)))))
+    .flat();
+  const htmlFiles = [...sourceFiles, ...localizedFiles];
+  let updated = 0;
+  for (const file of htmlFiles) {
+    const html = await readFile(file, "utf8");
+    const improved = ensureTwitterCard(html);
+    if (improved !== html) {
+      await writeFile(file, improved, "utf8");
+      updated += 1;
+    }
+  }
+  console.log(`Twitter summary cards added to ${updated} page(s).`);
+  process.exit(0);
+}
+
+if (sourceAlternatesOnly) {
+  if (outputRoot !== projectRoot) throw new Error("--source-alternates-only requires the project root as output.");
+  for (const relativePath of buildPages) {
+    const sourceFile = path.join(projectRoot, relativePath);
+    const html = await readFile(sourceFile, "utf8");
+    const noindex = /<meta\b[^>]*\bname=["']robots["'][^>]*\bcontent=["'][^"']*\bnoindex\b/i.test(html);
+    if (noindex) continue;
+    const translated = addSourceAlternates(html, relativePath, readyPages);
+    if (translated !== html) await writeFile(sourceFile, translated, "utf8");
+  }
+  console.log("Reciprocal hreflang links added to eligible Persian source pages.");
+  process.exit(0);
 }
 
 for (const locale of locales) {
@@ -344,6 +404,17 @@ for (const locale of locales) {
     const destination = path.join(languageOutput, relativePath);
     await mkdir(path.dirname(destination), { recursive: true });
     await writeFile(destination, translated, "utf8");
+  }
+}
+
+if (outputRoot === projectRoot) {
+  for (const relativePath of buildPages) {
+    const sourceFile = path.join(projectRoot, relativePath);
+    const html = await readFile(sourceFile, "utf8");
+    const noindex = /<meta\b[^>]*\bname=["']robots["'][^>]*\bcontent=["'][^"']*\bnoindex\b/i.test(html);
+    if (noindex) continue;
+    const translated = addSourceAlternates(html, relativePath, readyPages);
+    if (translated !== html) await writeFile(sourceFile, translated, "utf8");
   }
 }
 

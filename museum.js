@@ -290,10 +290,82 @@
 
   const peopleGallery = document.querySelector("#peopleGallery");
   if (peopleGallery && data.people) {
+    const peopleSummaries = {
+      "branko-babic": {
+        fa: "بنیان‌گذار PhiAcademy؛ مرور مستند مسیر حرفه‌ای و دیدار با لنا بحری.",
+        en: "Founder of PhiAcademy; a sourced overview of his career and meeting with Lena Bahri.",
+        ar: "مؤسس PhiAcademy؛ لمحة موثقة عن مسيرته المهنية ولقائه مع لنا بحري.",
+        zh: "PhiAcademy 创始人；通过可查资料介绍其职业经历及与 Lena Bahri 的交流。"
+      },
+      "emil-ilhamoglu": {
+        fa: "مدرس کارگاه NanoBrows در PhiAcademy؛ معرفی بر پایه منابع رسمی.",
+        en: "A PhiAcademy NanoBrows workshop instructor, profiled using official sources.",
+        ar: "مدرب ورشة NanoBrows في PhiAcademy؛ نبذة تستند إلى مصادر رسمية.",
+        zh: "PhiAcademy NanoBrows 工作坊讲师；简介依据官方资料整理。"
+      },
+      "mohamed-hanafy": {
+        fa: "هم‌بنیان‌گذار Hanafy Colors Pigments؛ معرفی دیدار و اطلاعات رسمی.",
+        en: "Co-founder of Hanafy Colors Pigments; a profile of the meeting and official information.",
+        ar: "شريك مؤسس Hanafy Colors Pigments؛ نبذة عن اللقاء ومعلومات رسمية.",
+        zh: "Hanafy Colors Pigments 联合创始人；介绍交流记录与官方信息。"
+      },
+      "katarina-lupsinova": {
+        fa: "سازندهٔ تکنیک Hairstrokes و مدرس دوره‌های تخصصی؛ بر پایه وب‌سایت رسمی.",
+        en: "Creator of the Hairstrokes technique and specialist-course educator, according to her official site.",
+        ar: "مطورة تقنية Hairstrokes ومدربة دورات متخصصة، وفقاً لموقعها الرسمي.",
+        zh: "据其官方网站介绍，她是 Hairstrokes 技法创作者及专业课程讲师。"
+      },
+      "brady-kirkpatrick": {
+        fa: "اطلاعات مستقل دربارهٔ سوابق تخصصی محدود است؛ منابع و جزئیات دیدار را ببینید.",
+        en: "Independent details about his professional background are limited; see the sources and meeting notes.",
+        ar: "المعلومات المستقلة عن خبرته المهنية محدودة؛ اطلعي على المصادر وتفاصيل اللقاء.",
+        zh: "目前可独立核实的职业经历有限；请查看来源与交流记录。"
+      },
+      "mersida-hodzic-ramic": {
+        fa: "مدرس کارگاه BoldBrows در PhiAcademy؛ معرفی بر پایه منابع رسمی.",
+        en: "A PhiAcademy BoldBrows workshop instructor, profiled using official sources.",
+        ar: "مدربة ورشة BoldBrows في PhiAcademy؛ نبذة تستند إلى مصادر رسمية.",
+        zh: "PhiAcademy BoldBrows 工作坊讲师；简介依据官方资料整理。"
+      },
+      "olga-hanafy": {
+        fa: "مستر آرتیست و مدیر مدرسهٔ تخصصی مسکو؛ فعال در آرایش دائم از ۲۰۰۵.",
+        en: "A master artist and head of a specialist school in Moscow; active in permanent makeup since 2005.",
+        ar: "فنانة خبيرة ومديرة مدرسة متخصصة في موسكو؛ تعمل في المكياج الدائم منذ ٢٠٠٥.",
+        zh: "资深艺术家及莫斯科专业学校负责人；自 2005 年起从事半永久妆。"
+      },
+      "nue-conceal": {
+        fa: "برند راهکارهای پارامدیکال پوست؛ معرفی برند و دیدار حرفه‌ای.",
+        en: "A paramedical skin-solutions brand, introduced alongside the professional meeting.",
+        ar: "علامة لحلول الجلد شبه الطبية، مع تعريف بالعلامة واللقاء المهني.",
+        zh: "提供辅助性皮肤解决方案的品牌；本页介绍该品牌及专业交流。"
+      },
+      "juan-cordero": {
+        fa: "هم‌بنیان‌گذار Trazos Perfectos و مدرس تکنیک HairStrokes.",
+        en: "Co-founder of Trazos Perfectos and HairStrokes technique instructor.",
+        ar: "شريك مؤسس Trazos Perfectos ومدرب تقنية HairStrokes.",
+        zh: "Trazos Perfectos 联合创始人及 HairStrokes 技法讲师。"
+      },
+      "d-chris": {
+        fa: "DCHRIS در آموزش و خدمات اسکالپ میکروپیگمنتیشن فعالیت می‌کند.",
+        en: "DCHRIS provides scalp micropigmentation education and services.",
+        ar: "تقدم DCHRIS التدريب والخدمات في تصبغ فروة الرأس.",
+        zh: "DCHRIS 提供头皮微色素技术培训与服务。"
+      }
+    };
+    const locale = document.documentElement.lang.toLowerCase().startsWith("zh")
+      ? "zh"
+      : document.documentElement.lang.toLowerCase().startsWith("ar")
+        ? "ar"
+        : document.documentElement.lang.toLowerCase().startsWith("en")
+          ? "en"
+          : "fa";
     peopleGallery.innerHTML = data.people.map((person, index) => `
       <a class="connection-item" href="${person.href}" aria-label="${person.name} — ${person.category}">
-        ${person.image ? `<img src="${person.image}" alt="${person.alt}" loading="lazy">` : `<span class="connection-placeholder" aria-hidden="true">${person.name}</span>`}
-        <span class="connection-caption"><b>${String(index + 1).padStart(2, "0")}</b>${person.name}</span>
+        ${person.image ? `<img src="${person.image}" alt="${person.alt}" loading="lazy" draggable="false">` : `<span class="connection-placeholder" aria-hidden="true">${person.name}</span>`}
+        <span class="connection-card-copy">
+          <span class="connection-caption"><b>${String(index + 1).padStart(2, "0")}</b><strong>${person.name}</strong></span>
+          <span class="connection-summary">${peopleSummaries[person.href.split("/").filter(Boolean).pop()]?.[locale] || ""}</span>
+        </span>
       </a>
     `).join("");
 
@@ -304,6 +376,8 @@
     const progressBar = document.querySelector("#peopleProgress");
     let isDragging = false;
     let wasDragged = false;
+    let activePointerId = null;
+    let dragResetTimer = 0;
     let startX = 0;
     let startScroll = 0;
 
@@ -331,34 +405,42 @@
     }, { passive: false });
     peopleGallery.addEventListener("pointerdown", (event) => {
       if (event.pointerType === "mouse" && event.button !== 0) return;
+      window.clearTimeout(dragResetTimer);
       isDragging = true;
       wasDragged = false;
+      activePointerId = event.pointerId;
       startX = event.clientX;
       startScroll = peopleGallery.scrollLeft;
       peopleGallery.classList.add("is-dragging");
-      peopleGallery.setPointerCapture(event.pointerId);
     });
-    peopleGallery.addEventListener("pointermove", (event) => {
-      if (!isDragging) return;
+    window.addEventListener("pointermove", (event) => {
+      if (!isDragging || event.pointerId !== activePointerId) return;
       const distance = event.clientX - startX;
       if (Math.abs(distance) > 6) wasDragged = true;
+      if (wasDragged) event.preventDefault();
       peopleGallery.scrollLeft = startScroll - distance;
-    });
+    }, { passive: false });
     const endDrag = (event) => {
-      if (!isDragging) return;
+      if (!isDragging || event.pointerId !== activePointerId) return;
       isDragging = false;
+      activePointerId = null;
       peopleGallery.classList.remove("is-dragging");
-      if (peopleGallery.hasPointerCapture(event.pointerId)) peopleGallery.releasePointerCapture(event.pointerId);
+      if (event.type === "pointercancel") wasDragged = false;
       const target = Math.round(peopleGallery.scrollLeft / getStep()) * getStep();
       peopleGallery.scrollTo({ left: target, behavior: "smooth" });
+      if (wasDragged) {
+        window.clearTimeout(dragResetTimer);
+        dragResetTimer = window.setTimeout(() => { wasDragged = false; }, 500);
+      }
     };
-    peopleGallery.addEventListener("pointerup", endDrag);
-    peopleGallery.addEventListener("pointercancel", endDrag);
+    window.addEventListener("pointerup", endDrag);
+    window.addEventListener("pointercancel", endDrag);
     peopleGallery.addEventListener("click", (event) => {
       if (wasDragged) {
         event.preventDefault();
         event.stopPropagation();
         wasDragged = false;
+        window.clearTimeout(dragResetTimer);
       }
     }, true);
     updatePeopleStatus();

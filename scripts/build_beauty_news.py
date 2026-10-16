@@ -2,13 +2,14 @@ import html
 import json
 import re
 from pathlib import Path
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlsplit
 import xml.etree.ElementTree as ET
 
 
 ROOT = Path(__file__).resolve().parents[1]
 DATA = json.loads((ROOT / "data" / "beauty-news.json").read_text(encoding="utf-8"))
 EXTRA_PATH = ROOT / "data" / "beauty-news-extra.json"
+UNPUBLISHED_EXTRA_SLUGS = set()
 if EXTRA_PATH.exists():
     EXTRA = json.loads(EXTRA_PATH.read_text(encoding="utf-8"))
     DATA["categories"].extend(EXTRA.get("categories", []))
@@ -17,9 +18,11 @@ if EXTRA_PATH.exists():
     slug_overrides = {slug: values.get("slug", slug) for slug, values in article_overrides.items()}
     extra_articles = []
     for article in EXTRA.get("articles", []):
-        if not article.pop("published", True):
-            continue
         original_slug = article["slug"]
+        published = EXTRA.get("publicationOverrides", {}).get(original_slug, article.pop("published", False))
+        if not published:
+            UNPUBLISHED_EXTRA_SLUGS.add(original_slug)
+            continue
         article.update(article_overrides.get(original_slug, {}))
         article.update(article_overrides.get(original_slug + "-content", {}))
         article.update(EXTRA.get("sourceOverrides", {}).get(article["sourceUrl"], {}))
@@ -65,6 +68,14 @@ def absolute(path):
     return urljoin(SITE + "/", path.lstrip("/"))
 
 
+def article_path(slug):
+    return f"{NEWS_PATH}{slug}/"
+
+
+def normalize_article_urls(content):
+    return re.sub(r'(/khabar/beauty/[a-z0-9-]+)(?=["\'?#])', r'\1/', content)
+
+
 def json_ld(value):
     return json.dumps(value, ensure_ascii=False).replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026")
 
@@ -74,6 +85,20 @@ def date_label(value):
 
 
 def doc_head(title, description, canonical, image, schema, og_type="website"):
+    canonical_path = urlsplit(canonical).path
+    alternate_tags = []
+    for locale, language in (("en", "en"), ("ar", "ar"), ("zh", "zh-CN")):
+        translated_path = ROOT / locale / canonical_path.lstrip("/")
+        if canonical_path.endswith("/"):
+            translated_path = translated_path / "index.html"
+        if translated_path.is_file():
+            alternate_tags.append(f'<link rel="alternate" hreflang="{language}" href="https://lenabahri.ir/{locale}{canonical_path}">')
+    if alternate_tags:
+        alternate_tags.extend((
+            f'<link rel="alternate" hreflang="fa" href="{esc(canonical)}">',
+            f'<link rel="alternate" hreflang="x-default" href="{esc(canonical)}">',
+        ))
+    alternate_markup = "\n  ".join(alternate_tags)
     return f'''<!doctype html>
 <html lang="fa" dir="rtl">
 <head>
@@ -83,6 +108,7 @@ def doc_head(title, description, canonical, image, schema, og_type="website"):
   <meta name="description" content="{esc(description)}">
   <meta name="robots" content="index,follow,max-image-preview:large">
   <link rel="canonical" href="{esc(canonical)}">
+  {alternate_markup}
   <meta property="og:type" content="{esc(og_type)}">
   <meta property="og:locale" content="fa_IR">
   <meta property="og:site_name" content="{esc(PUBLISHER)}">
@@ -119,7 +145,7 @@ def source_schema(article):
         "dateModified": MODIFIED_DATE,
         "author": {"@type": "Organization", "name": NEWSROOM, "url": absolute(EDITORIAL_PATH)},
         "publisher": {"@type": "Organization", "name": PUBLISHER, "url": absolute("/")},
-        "mainEntityOfPage": {"@type": "WebPage", "@id": absolute(NEWS_PATH + article["slug"])},
+        "mainEntityOfPage": {"@type": "WebPage", "@id": absolute(article_path(article["slug"]))},
         "articleSection": article["categoryLabel"],
         "keywords": article["keywords"],
         "inLanguage": "fa-IR",
@@ -152,7 +178,7 @@ def source_row_html(article, source):
 
 
 def article_page(article, by_slug):
-    canonical = absolute(NEWS_PATH + article["slug"])
+    canonical = absolute(article_path(article["slug"]))
     related = [by_slug[slug] for slug in article.get("related", []) if slug in by_slug and slug != article["slug"]]
     related_html = "".join(f'<a class="related-link" href="{NEWS_PATH}{esc(item["slug"])}"><span>{esc(item["categoryLabel"])}</span><strong>{esc(item["title"])}</strong></a>' for item in related[:3])
     sections = "".join(f'<section><h2>{esc(section["heading"])}</h2>{"".join(f"<p>{esc(paragraph)}</p>" for paragraph in section["paragraphs"])}</section>' for section in article["sections"])
@@ -263,8 +289,25 @@ def update_sitemap():
     sitemap_text = sitemap_path.read_text(encoding="utf-8")
     root = ET.fromstring(sitemap_text)
     namespace = "{http://www.sitemaps.org/schemas/sitemap/0.9}"
-    managed_paths = ["/", NEWS_PATH, EDITORIAL_PATH] + [NEWS_PATH + article["slug"] for article in DATA["articles"]]
+    managed_paths = ["/", NEWS_PATH, EDITORIAL_PATH] + [article_path(article["slug"]) for article in DATA["articles"]]
     entries = {node.findtext(namespace + "loc"): node for node in root.findall(namespace + "url")}
+    for article in DATA["articles"]:
+        old_location = absolute(NEWS_PATH + article["slug"])
+        new_location = absolute(article_path(article["slug"]))
+        old_node = entries.pop(old_location, None)
+        if old_node is None:
+            continue
+        if new_location in entries:
+            root.remove(old_node)
+        else:
+            old_node.find(namespace + "loc").text = new_location
+            entries[new_location] = old_node
+    for slug in UNPUBLISHED_EXTRA_SLUGS:
+        unpublished_paths = [article_path(slug)] + [f"/{locale}/{article_path(slug).lstrip('/')}" for locale in ("en", "ar", "zh")]
+        for path in unpublished_paths:
+            node = entries.pop(absolute(path), None)
+            if node is not None:
+                root.remove(node)
     for path in managed_paths:
         loc = absolute(path)
         node = entries.get(loc)
@@ -300,7 +343,7 @@ def main():
         if not article.get("imageAlt", "").strip():
             raise ValueError(f"Image alt text is required: {article['slug']}")
     (ROOT / "khabar" / "beauty").mkdir(parents=True, exist_ok=True)
-    (ROOT / "khabar" / "beauty" / "index.html").write_text(hub_page(), encoding="utf-8")
+    (ROOT / "khabar" / "beauty" / "index.html").write_text(normalize_article_urls(hub_page()), encoding="utf-8")
     policy_dir = ROOT / EDITORIAL_PATH.strip("/")
     policy_dir.mkdir(parents=True, exist_ok=True)
     (policy_dir / "index.html").write_text(editorial_page(), encoding="utf-8")
@@ -309,7 +352,7 @@ def main():
             raise ValueError(f"Invalid slug: {article['slug']}")
         article_dir = ROOT / "khabar" / "beauty" / article["slug"]
         article_dir.mkdir(parents=True, exist_ok=True)
-        (article_dir / "index.html").write_text(article_page(article, by_slug), encoding="utf-8")
+        (article_dir / "index.html").write_text(normalize_article_urls(article_page(article, by_slug)), encoding="utf-8")
     update_sitemap()
 
 
