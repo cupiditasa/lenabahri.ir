@@ -12,6 +12,11 @@ from pathlib import Path
 from urllib.parse import unquote, urljoin, urlsplit
 
 
+for stream in (sys.stdout, sys.stderr):
+    if hasattr(stream, "reconfigure"):
+        stream.reconfigure(encoding="utf-8", errors="backslashreplace")
+
+
 ROOT = Path(__file__).resolve().parents[4]
 SITE = "https://lenabahri.ir"
 SKIP_DIRS = {".git", ".locale-preview", ".vps-tools", ".playwright-cli", "node_modules", "output", "__pycache__"}
@@ -29,6 +34,7 @@ class PageParser(HTMLParser):
         self.alternates: list[tuple[str, str]] = []
         self.links: list[tuple[str, str, str]] = []
         self.images: list[dict[str, str]] = []
+        self.anchors: set[str] = set()
         self.meta: dict[str, list[str]] = defaultdict(list)
         self.json_ld: list[str] = []
         self.has_refresh = False
@@ -38,6 +44,10 @@ class PageParser(HTMLParser):
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
         values = {key.lower(): value or "" for key, value in attrs}
+        if values.get("id"):
+            self.anchors.add(values["id"])
+        if tag == "a" and values.get("name"):
+            self.anchors.add(values["name"])
         if tag == "html":
             self.html_attrs = values
         elif tag == "title":
@@ -102,7 +112,7 @@ def page_route(relative: str) -> str:
     return "/" + relative
 
 
-def route_file(path: str) -> Path | None:
+def route_file(path: str, release_files: set[str] | None = None) -> Path | None:
     decoded = unquote(path)
     if not decoded.startswith("/"):
         return None
@@ -111,10 +121,16 @@ def route_file(path: str) -> Path | None:
         candidate.relative_to(ROOT.resolve())
     except ValueError:
         return None
-    if candidate.is_file():
+    def included(file: Path) -> bool:
+        if release_files is None:
+            return True
+        return file.relative_to(ROOT.resolve()).as_posix() in release_files
+
+    if candidate.is_file() and included(candidate):
         return candidate if candidate.suffix.lower() == ".html" else candidate
-    if candidate.is_dir() and (candidate / "index.html").is_file():
-        return candidate / "index.html"
+    index_file = candidate / "index.html"
+    if candidate.is_dir() and index_file.is_file() and included(index_file):
+        return index_file
     return None
 
 
@@ -150,10 +166,21 @@ def main() -> int:
                     issue(findings, "error", "release-manifest-invalid", str(args.release_manifest), f"unsafe release path: {raw_path}")
                 else:
                     release_files.add(release_path)
+            for release_path in sorted(release_files):
+                candidate = (ROOT / release_path).resolve()
+                try:
+                    candidate.relative_to(ROOT.resolve())
+                except ValueError:
+                    issue(findings, "error", "release-manifest-invalid", str(args.release_manifest), f"release path escapes project root: {release_path}")
+                    continue
+                if not candidate.is_file():
+                    issue(findings, "error", "release-file-missing", release_path, "manifest entry does not exist as a file")
         except (OSError, UnicodeError) as error:
             issue(findings, "error", "release-manifest-read", str(args.release_manifest), str(error))
     pages: dict[str, tuple[PageParser, str]] = {}
     routes: dict[str, str] = {}
+    internal_inbound: Counter[str] = Counter()
+    pending_fragments: list[tuple[str, str, str, str]] = []
     titles: dict[tuple[str, str], list[str]] = defaultdict(list)
     descriptions: dict[tuple[str, str], list[str]] = defaultdict(list)
     nginx_path = ROOT / "cloudflare" / "booking-api" / "ops" / "nginx-lenabahri.conf"
@@ -168,9 +195,14 @@ def main() -> int:
         if not nginx_redirect_exists(nginx_text, route, destination):
             issue(findings, "warning", "legacy-redirect-missing", nginx_path.relative_to(ROOT).as_posix(), f"expected 301 from {route} to {destination}")
 
-    for file in sorted(ROOT.rglob("*.html")):
-        if any(part in SKIP_DIRS for part in file.relative_to(ROOT).parts):
-            continue
+    if release_files is None:
+        html_files = [
+            file for file in ROOT.rglob("*.html")
+            if not any(part in SKIP_DIRS for part in file.relative_to(ROOT).parts)
+        ]
+    else:
+        html_files = [ROOT / path for path in sorted(release_files) if Path(path).suffix.lower() == ".html"]
+    for file in sorted(html_files):
         relative = file.relative_to(ROOT).as_posix()
         route = page_route(relative)
         parser = PageParser()
@@ -230,15 +262,28 @@ def main() -> int:
                 continue
             if resolved.path.startswith("/api/"):
                 continue
-            local = route_file(resolved.path or "/")
+            local = route_file(resolved.path or "/", release_files)
             if local is None:
                 issue(findings, "error" if kind == "anchor" else "warning", "internal-target-missing", relative, f"{kind} points to missing local target {resolved.path}")
             elif kind == "anchor" and (ROOT / unquote(resolved.path).lstrip("/")).is_dir() and resolved.path != "/" and not resolved.path.endswith("/"):
                 issue(findings, "warning", "internal-slash-redirect", relative, f"directory link likely redirects to trailing slash: {resolved.path}")
+            elif kind == "anchor" and resolved.fragment and local.suffix.lower() == ".html":
+                target_relative = local.relative_to(ROOT).as_posix()
+                pending_fragments.append((relative, target_relative, unquote(resolved.fragment), resolved.path or route))
+            if kind == "anchor" and local is not None:
+                target_relative = local.relative_to(ROOT).as_posix()
+                target_route = page_route(target_relative) if local.suffix.lower() == ".html" else None
+                if target_route is not None and target_route != route:
+                    internal_inbound[target_route] += 1
         if title:
             titles[(locale, title.casefold())].append(relative)
         if description:
             descriptions[(locale, description.casefold())].append(relative)
+
+    for source_relative, target_relative, fragment, target_path in pending_fragments:
+        target_parser = pages.get(target_relative, (None, ""))[0]
+        if target_parser is not None and not target_parser.has_refresh and fragment not in target_parser.anchors:
+            issue(findings, "warning", "internal-fragment-missing", source_relative, f"anchor points to missing fragment #{fragment} on {target_path}")
 
     for (locale, value), files in titles.items():
         if len(files) > 1:
@@ -248,8 +293,11 @@ def main() -> int:
             issue(findings, "warning", "duplicate-description", ", ".join(files[:4]), f"duplicate description in {locale}: {value[:100]}")
 
     for relative, (parser, route) in pages.items():
-        if "noindex" in " ".join(parser.meta.get("robots", [])).lower() or parser.has_refresh:
+        robots = " ".join(parser.meta.get("robots", [])).lower()
+        if "noindex" in robots or parser.has_refresh:
             continue
+        if route != "/" and not internal_inbound[route]:
+            issue(findings, "warning", "page-without-internal-inlinks", relative, f"indexable route {route} has no inbound crawlable internal links")
         seen_langs: set[str] = set()
         for language, target in parser.alternates:
             if language in seen_langs:
@@ -259,7 +307,7 @@ def main() -> int:
             if split.scheme != "https" or split.netloc.lower() != "lenabahri.ir":
                 issue(findings, "warning", "hreflang-host", relative, f"hreflang target must use canonical site host: {target}")
                 continue
-            target_file = route_file(split.path)
+            target_file = route_file(split.path, release_files)
             if target_file is None:
                 issue(findings, "warning", "hreflang-target-missing", relative, f"hreflang target does not resolve locally: {target}")
                 continue
@@ -275,7 +323,7 @@ def main() -> int:
         expected = {"fa": base_route, "x-default": base_route}
         for code, prefix in (("en", "en"), ("ar", "ar"), ("zh-cn", "zh")):
             candidate_route = f"/{prefix}{base_route}" if base_route != "/" else f"/{prefix}/"
-            if route_file(candidate_route) is not None:
+            if route_file(candidate_route, release_files) is not None:
                 expected[code] = candidate_route
         actual = dict(parser.alternates)
         for code, target_path in expected.items():
@@ -301,7 +349,7 @@ def main() -> int:
                 if split.scheme != "https" or split.netloc.lower() != "lenabahri.ir":
                     issue(findings, "error", "sitemap-host", "sitemap.xml", f"non-canonical sitemap host or scheme: {loc}")
                     continue
-                local = route_file(split.path or "/")
+                local = route_file(split.path or "/", release_files)
                 if local is None:
                     issue(findings, "error", "sitemap-target-missing", "sitemap.xml", f"URL does not resolve to a local HTML page: {loc}")
                 elif local.suffix.lower() != ".html":
@@ -376,7 +424,8 @@ def main() -> int:
 
     counts = Counter(item["severity"] for item in findings)
     if args.json:
-        print(json.dumps({"root": str(ROOT), "html_pages": len(pages), "sitemap_urls": len(sitemap_urls), "counts": counts, "findings": findings}, ensure_ascii=False, indent=2, default=dict))
+        severity_counts = {level: counts.get(level, 0) for level in ("error", "warning", "info")}
+        print(json.dumps({"root": str(ROOT), "html_pages": len(pages), "sitemap_urls": len(sitemap_urls), "counts": severity_counts, "findings": findings}, ensure_ascii=True, indent=2))
     else:
         print(f"Pages: {len(pages)} HTML | Sitemap: {len(sitemap_urls)} URLs")
         print("Findings: " + ", ".join(f"{level}={counts.get(level, 0)}" for level in ("error", "warning", "info")))

@@ -1,13 +1,13 @@
 ---
 name: lena-bahri-seo-optimizer
-description: "Audit and improve Lena Bahri site's technical SEO, multilingual routes, local search signals, editorial quality, and Search Console coverage using verified evidence."
+description: "Project workflow used by SEO01 to audit and improve Lena Bahri technical SEO, multilingual routes, editorial quality, and Google Search Console coverage using verified evidence."
 metadata:
   short-description: "Evidence-led SEO for Lena Bahri"
 ---
 
-# Lena Bahri SEO Optimizer
+# SEO01 — Lena Bahri SEO Optimizer
 
-Use this project-specific workflow for `lenabahri.ir` SEO audits and improvements. It covers Persian root pages plus English `/en/`, Arabic `/ar/`, and Simplified Chinese `/zh/` pages, the beauty-news section, portfolio, services, people profiles, and local-business/contact routes.
+Use this project-specific workflow whenever the user invokes SEO01 for `lenabahri.ir`. It covers Persian root pages plus English `/en/`, Arabic `/ar/`, and Simplified Chinese `/zh/` pages, the beauty-news section, portfolio, services, people profiles, and local-business/contact routes. The globally installed `seo01` skill is the user-facing entrypoint; this file and its scripts are the site's implementation guide.
 
 ## Guardrails
 
@@ -18,21 +18,25 @@ Use this project-specific workflow for `lenabahri.ir` SEO audits and improvement
 - Do not claim Google ranking, rich results, indexing, or traffic outcomes are guaranteed. Google decides crawling, indexing, snippets, and result presentation.
 - Do not redirect retired URLs to unrelated pages. Verify the old route, closest equivalent, internal references, and live status before proposing a redirect.
 - Never expose credentials. Do not submit Search Console validation/sitemaps, change account/domain settings, or deploy without explicit approval for that specific consequential action and a verified release path.
+- Treat Search Console indexing reports as dated snapshots. A submitted sitemap, a discovered URL, and a live URL test are different signals; none alone proves indexing or ranking.
+- Do not click Request indexing, validate fixes, submit sitemaps, or alter Search Console settings unless the user explicitly authorizes that exact action in the current task.
 
 ## Audit loop
 
-1. **Establish baseline.** Inspect repository guidance, `robots.txt`, XML sitemap(s), build/deploy instructions, source generators, locale routes, and the current working-tree state. Use authenticated Search Console only when the user's existing session is available and authorized. Record the property, report date/range, counts, and limitations.
-2. **Run deterministic checks.** Run `python .agents/skills/lena-bahri-seo-optimizer/scripts/audit_static_site.py`. Review each finding against the actual route, source generator, production behavior, and intended page purpose; do not treat the script as Google or browser validation.
-3. **Prioritize evidence.** Fix P0 security/privacy or submission failures first; then P1 canonical/redirect/404, sitemap, internal-link, indexability, language-alternate, or page-rendering defects; then P2 metadata, structured-data, image, accessibility, and content improvements. Do not mark a Search Console issue fixed until the correction is live and rechecked.
-4. **Patch the source of truth.** Prefer correcting a generator or route map over editing generated copies. Keep URLs stable where possible. When URL changes are necessary, preserve a relevant 301 mapping and update canonicals, internal links, locale alternates, structured data, and sitemap together.
-5. **Self-review in three passes.** After the first implementation, (a) run focused tests and the site auditor, (b) inspect the diff for collateral changes and confirm each fix addresses the root cause, and (c) rerun the auditor/build and verify representative pages in every language. Stop after three meaningful passes when no known high-severity issue remains; do not claim perfection or continue cosmetic churn.
-6. **Report and release.** Summarize verified defects, exact changes, validation results, remaining risks, and required user actions. Before a release, inspect the exact diff and staged public file manifest; run the auditor with `--release-manifest <manifest>` and exclude build tools, drafts, and source registries that contain unpublished copy. Use only the documented deploy path. Recheck production HTTP status, redirects, canonical, language alternates, sitemap and relevant page rendering. Ask before Search Console submission or validation clicks.
+1. **Establish baseline.** Inspect repository guidance, `robots.txt`, XML sitemap(s), build/deploy instructions, locale routes, and the exact working-tree state. Keep pre-existing staged, unstaged, and untracked work intact. If an authenticated Search Console session is already available, record its property, retrieval date, report status, and known staleness.
+2. **Round one — source and release.** Run `py .agents/skills/lena-bahri-seo-optimizer/scripts/audit_static_site.py --json`. For an actual release, also pass its exact newline-delimited file manifest with `--release-manifest <manifest>`; do not substitute a stale or guessed manifest. Review canonical/sitemap parity, noindex exclusions, assets, crawlable internal links, fragments, hreflang reciprocity, and held-draft exclusion.
+3. **Round two — production and Google signals.** Run `node .agents/skills/lena-bahri-seo-optimizer/scripts/audit_live_sitemap.mjs` against the production sitemap. Confirm representative route status and redirects, then inspect Search Console read-only for the root, key service/news/profile routes, and one route per locale. Distinguish a historical indexing result from a live fetch/test. A sitemap helps discovery but does not guarantee crawl or indexing.
+4. **Prioritize evidence.** Fix privacy/security and broken release paths first; then wrong canonical/redirect/404, missing sitemap entries, orphan pages, broken fragments/assets, locale alternates, or rendering defects; then metadata, structured data, accessibility, and content. Label each item as verified defect, observed Google status, hypothesis, or recommendation.
+5. **Round three — root-cause correction and regression.** Patch the source of truth where possible; regenerate only the necessary pages. Re-run the full source and exact-release audits, locale checks, live URL checks for affected routes, and representative page checks in all four languages. Reinspect Search Console only when it can provide a new signal; do not repeatedly query unchanged data. Stop after three meaningful passes when no material high-severity defect remains. Never claim perfection or guaranteed ranking/indexing.
+6. **Report and release.** Summarize each pass, evidence, fixes, checks, Google-side pending work, and limitations. Before publishing, inspect the exact diff and staged public file list; exclude build tools, drafts, private reports, source registries with unpublished copy, and temporary credentials. Deploy only through the documented path. Submit sitemaps, request indexing, validate fixes, or change settings only after specific user authorization.
 
 ## Site-specific checks
 
 - Static directory routes should be linked and canonicalized consistently with the server's trailing-slash behavior. `.html` file routes remain file routes; do not append `/` to them.
 - Keep Persian canonical URLs on the root path and localized pages on their own `/en/`, `/ar/`, or `/zh/` routes. Hreflang targets must exist, use the correct language/region codes, and reciprocate. Never advertise a translation that is incomplete or absent.
 - Sitemap entries must be unique, same-site, indexable, resolvable to a real page, and use that page's final canonical route. `lastmod` is optional; include or change it only when the page materially changed and the date is truthful.
+- Important indexable pages should have at least one crawlable internal `<a href>` link, not only a sitemap entry. Validate internal fragments (`#id`) as well as target paths. Sitemap presence alone does not resolve an orphan-page risk.
+- When auditing a release manifest, resolve pages, links, assets, sitemap targets, and hreflang targets against the manifest itself—not files that merely exist in the working tree. Reject manifest paths that escape the project or do not exist.
 - A held newsroom draft must be explicitly unpublished in the registry and absent from every public locale page and sitemap. Keep the source package in drafts; never let a missing publication flag default a draft to public.
 - Inspect the staged release itself, not just the source tree: exclude the build-only `data/beauty-news-extra.json` registry when it contains held article copy, ensure held article routes and images are absent from the release manifest, and scan released text files (including locale dictionaries) for held slugs.
 - Check internal anchors and assets after route edits. A sitemap is a discovery hint, not proof that Google has indexed a page.
@@ -52,5 +56,7 @@ Use this project-specific workflow for `lenabahri.ir` SEO audits and improvement
 - Article structured data: https://developers.google.com/search/docs/appearance/structured-data/article
 - Local business structured data: https://developers.google.com/search/docs/appearance/structured-data/local-business
 - Image SEO: https://developers.google.com/search/docs/appearance/google-images
+- Sitemap overview and indexing caveat: https://developers.google.com/search/docs/crawling-indexing/sitemaps/overview
+- Crawlable links and internal discovery: https://developers.google.com/search/docs/crawling-indexing/links-crawlable
 
 Use current Google Search Central documentation as the technical source of truth; distinguish recommendations from requirements and from guarantees.
