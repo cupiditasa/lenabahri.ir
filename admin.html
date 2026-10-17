@@ -9,6 +9,7 @@
   <title>مدیریت درخواست‌ها | لنا بحری</title>
   <link rel="stylesheet" href="admin.css">
   <link rel="stylesheet" href="admin-cms.css?v=20261016-admin-panel">
+  <link rel="stylesheet" href="admin-tutorial.css?v=20261017-tutorial">
   <script src="admin.js?v=20261016-admin-panel" defer></script>
 </head>
 <body>
@@ -33,7 +34,17 @@
     <section class="dashboard" id="dashboard" hidden>
       <div class="dashboard-title">
         <div><p class="eyebrow">مدیریت مجموعه</p><h1>درخواست‌های رزرو</h1><p class="muted">اطلاعات و عکس‌های ثبت‌شده فقط برای مدیر قابل مشاهده‌اند.</p></div>
-        <button class="quiet-button" id="logoutButton" type="button">خروج امن</button>
+        <div class="admin-header-actions">
+          <button class="tutorial-launcher" id="tutorialButton" type="button" aria-expanded="false" aria-controls="tutorialMenu">
+            <img src="/assets/assistant/lena-character-v2.png" alt="" aria-hidden="true">
+            <span>راهنمای پنل</span>
+          </button>
+          <div class="tutorial-menu" id="tutorialMenu" role="group" aria-label="انتخاب نوع آموزش" hidden>
+            <button type="button" id="tutorialCurrent">آموزش همین بخش</button>
+            <button type="button" id="tutorialAll">آموزش کل بخش‌ها</button>
+          </div>
+          <button class="quiet-button" id="logoutButton" type="button">خروج امن</button>
+        </div>
       </div>
       <nav class="admin-tabs" aria-label="بخش‌های پنل مدیریت">
         <button type="button" data-admin-tab="overview" aria-selected="true">گزارش عملکرد</button>
@@ -93,5 +104,6 @@
   </main>
   <script src="/gallery-data.js" defer></script>
   <script src="/admin-cms.js?v=20261016-admin-panel" defer></script>
+  <script src="/admin-tutorial.js?v=20261017-tutorial" defer></script>
 </body>
 </html>
