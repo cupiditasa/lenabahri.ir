@@ -1,5 +1,11 @@
 {
   "common": {
+    "اکتوئین در محصولات پوستی؛ ترند مراقبت یا درمان ثابت‌شده؟": "Ectoin in Skincare: Trend Ingredient or Proven Treatment?",
+    "پپتید در مراقبت پوست؛ شواهد محصولات موضعی چقدر است؟": "Peptides in Skincare: What Is the Evidence for Topical Products?",
+    "سرم بی‌نام کنار گیاهان شورپسند و آب؛ تصویرسازی اختصاصی درباره اکتوئین، نه عکس محصول": "An unbranded serum beside salt-tolerant botanicals and water; an original ectoin-themed illustration, not a product photograph",
+    "گزارش ترند، کارآزمایی محدود و اثر همهٔ محصولات حاوی اکتوئین یک چیز نیستند.": "A trend report, a limited trial and the effects of every ectoin product are not the same thing.",
+    "بافت کرم بی‌نام کنار لایهٔ نمادین سد پوستی و گوی‌های مولکولی؛ تصویرسازی دربارهٔ پژوهش پپتیدها": "An unbranded cream beside an illustrative skin-barrier layer and molecular spheres; an editorial illustration about peptide research",
+    "مرور پژوهش‌ها دربارهٔ پپتیدها امیدوارکننده است، اما شواهد محصولات موضعی هنوز محدود است.": "Research on peptides is promising, but evidence for topical products remains limited.",
     "ورود کاربران": "Customer Login",
     "گزارش Allure برای پاییز ۲۰۲۶ چند مسیر میکاپ را برجسته می‌کند؛ انتخاب یک ویژگی برای تأکید، پوست سبک و مژه‌های نمایشی.": "Allure’s fall 2026 report highlights several makeup directions: emphasize one feature, keep skin lightweight and make lashes expressive.",
     "آرایش چشم پاییزی با رنگ‌های گرم در پرتره ادیتوریال اختصاصی": "Fall eye makeup in warm shades in a custom editorial portrait",
@@ -1897,6 +1903,47 @@
       "وضعیت سفارش‌ها": "Order status",
       "ثبت درخواست جدید": "Send a new request",
       "ورود فقط با کد پیامکی انجام می‌شود. وضعیت هر سفارش پس از بررسی و به‌روزرسانی توسط مجموعه نمایش داده می‌شود.": "Sign-in uses an SMS one-time code. Request status appears after the studio reviews and updates it."
+    },
+    "khabar/beauty/skincare-active-ingredients-2026/index.html": {
+      "اکتوئین در محصولات پوستی؛ ترند مراقبت یا درمان ثابت‌شده؟": "Ectoin in Skincare: Trend Ingredient or Proven Treatment?",
+      "اکتوئین در مراقبت پوست؛ شواهد و محدودیت‌ها": "Ectoin in Skincare: Evidence and Limits",
+      "اکتوئین در گزارش روندهای ۲۰۲۶ مطرح شده است؛ یک کارآزمایی کوچک آن را در درماتیت سبورئیک صورت بررسی کرد. شواهد را با احتیاط بخوانید.": "Ectoin appears in 2026 trend coverage; one small clinical trial examined it for facial seborrheic dermatitis. Read the evidence with care.",
+      "گزارش ترند، کارآزمایی محدود و اثر همهٔ محصولات حاوی اکتوئین یک چیز نیستند.": "A trend report, a limited trial and the effects of every ectoin product are not the same thing.",
+      "اکتوئین در مراقبت پوست": "Ectoin in skincare",
+      "مطالعه اکتوئین": "Ectoin clinical study",
+      "اکتوئین و درماتیت سبورئیک": "Ectoin and seborrheic dermatitis",
+      "ترند مراقبت پوست ۲۰۲۶": "2026 skincare trends",
+      "سرم بی‌نام کنار گیاهان شورپسند و آب؛ تصویرسازی اختصاصی درباره اکتوئین، نه عکس محصول": "An unbranded serum beside salt-tolerant botanicals and water; an original ectoin-themed illustration, not a product photograph",
+      "اکتوئین در گزارش ترندهای پوستی Vogue برای ۲۰۲۶ آمده است؛ اما گزارش مد، اثربخشی محصول را اثبات نمی‌کند. یک کارآزمایی منتشرشده در ۳ اکتبر ۲۰۲۶، کرم ۷٪ اکتوئین را در شرایط مشخص درماتیت سبورئیک صورت آزمود؛ دامنهٔ آن را نباید به همهٔ محصولات یا همهٔ افراد تعمیم داد.": "Ectoin appears in Vogue’s 2026 skincare trend coverage, but trend reporting does not prove a product works. A trial published on October 3, 2026 tested 7% ectoin cream in the specific setting of facial seborrheic dermatitis; its scope should not be generalized to every product or person.",
+      "از پیش‌بینی ترند تا مطالعهٔ بالینی": "From trend forecast to clinical study",
+      "Vogue در ۵ ژانویهٔ ۲۰۲۶ اکتوئین را در میان ترکیبات مورد توجه سال معرفی کرد. مطالعه‌ای در نشریهٔ Cosmetics در ۳ اکتبر ۲۰۲۶ یک کارآزمایی دوسوکور تصادفی با ۴۰ شرکت‌کننده را گزارش می‌کند که کرم ۷٪ اکتوئین را با کرم ۱٪ هیدروکورتیزون، روزی دو بار تا چهار هفته، برای درماتیت سبورئیک خفیف تا متوسط صورت مقایسه کرد. شدت بیماری در هر دو گروه کاهش یافت، اما کاهش با هیدروکورتیزون از نظر عددی بیشتر بود و اختلاف هفتهٔ چهارم معنادار نبود. در مرحلهٔ نگهدارنده، میانهٔ زمان تا عود با اکتوئین ۵۶ روز و با دارونما ۲۸ روز بود؛ این تفاوت نیز به معنی‌داری آماری نرسید. این مطالعه به یک وضعیت مشخص می‌پردازد و اثربخشی عمومی محصولات آرایشی حاوی اکتوئین را ثابت نمی‌کند.": "On January 5, 2026, Vogue listed ectoin among ingredients attracting attention that year. A study in Cosmetics, published October 3, 2026, reports a double-blind randomized trial of 40 participants comparing 7% ectoin cream with 1% hydrocortisone cream, twice daily for up to four weeks, for mild-to-moderate facial seborrheic dermatitis. This trial addressed one specific condition; it did not test every ectoin serum or establish general cosmetic suitability.",
+      "چطور ادعای محصول را ارزیابی کنیم؟": "How should you assess a product claim?",
+      "غلظت، فرمول نهایی، دستور مصرف و هشدارهای هر محصول را جداگانه بخوان. یک مطالعه با ۴۰ شرکت‌کننده برای نتیجه‌گیری دربارهٔ همهٔ محصولات و پوست‌ها کافی نیست؛ اگر التهاب یا علائم ماندگار داری، تشخیص و درمان را با متخصص پوست بررسی کن و ترند را جایگزین مراقبت پزشکی نکن.": "Check each product’s concentration, finished formula, directions and warnings separately. One study with 40 participants cannot establish effects for every product and skin type; if inflammation or symptoms persist, discuss diagnosis and care with a dermatologist rather than substituting a trend for medical care.",
+      "این گزارش بر پایهٔ منابع زیر تهیه شده است. تاریخ هر منبع کنار پیوند آن آمده است؛ مطلب، جمع‌بندی اختصاصی تحریریه است و بازنشر متن منبع نیست.": "This report draws on the sources below. Each source’s date appears beside its link; the article is an original editorial synthesis, not a reproduction of source text.",
+      "ترکیبات فعال مراقبت پوست در ۲۰۲۶؛ ترند را از شواهد محصول جدا کنیم": "2026 Skincare Actives: Separate Trends from Product Evidence",
+      "مراقبت پوستی هدفمند در ۲۰۲۶؛ از روتین ساده تا ترکیبات فعال": "Targeted Skincare in 2026: From Simple Routines to Active Ingredients",
+      "آرایش پوست محو و نرم در ۲۰۲۶؛ پایان ساتن چه فرقی دارد؟": "Soft-Focus Makeup in 2026: What a Satin Finish Means",
+      "راهنمای تخصصی نانو بروز ابرو در شیراز": "A Professional Guide to Nano Brows in Shiraz"
+    },
+    "khabar/beauty/chrono-active-skincare-2026/index.html": {
+      "پپتید در مراقبت پوست؛ شواهد محصولات موضعی چقدر است؟": "Peptides in Skincare: What Is the Evidence for Topical Products?",
+      "پپتیدهای پوستی؛ شواهد محصولات موضعی": "Peptides for Skin: Evidence on Topical Products",
+      "مرور نظام‌مند ۲۰۲۶ دربارهٔ پپتیدهای پوست، ۱۹ کارآزمایی را بررسی کرد؛ فقط دو مطالعه موضعی بودند. این محدودیت برای انتخاب محصول چه معنایی دارد؟": "A 2026 systematic review examined 19 peptide trials for skin, but only two studied topical products. What does that limitation mean when choosing a product?",
+      "مرور پژوهش‌ها دربارهٔ پپتیدها امیدوارکننده است، اما شواهد محصولات موضعی هنوز محدود است.": "Research on peptides is promising, but evidence for topical products remains limited.",
+      "پپتید در مراقبت پوست": "Peptides in skincare",
+      "سرم پپتیدی": "Peptide serum",
+      "شواهد پپتید موضعی": "Evidence on topical peptides",
+      "سد پوستی": "Skin barrier",
+      "بافت کرم بی‌نام کنار لایهٔ نمادین سد پوستی و گوی‌های مولکولی؛ تصویرسازی دربارهٔ پژوهش پپتیدها": "An unbranded cream beside an illustrative skin-barrier layer and molecular spheres; an editorial illustration about peptide research",
+      "پپتید نام یک گروه از ترکیبات است، نه یک فرمول واحد. مرور نظام‌مند سال ۲۰۲۶، ۱۹ کارآزمایی را بررسی کرد، اما ۱۷ مورد دربارهٔ پپتید خوراکی و فقط دو مورد دربارهٔ نوع موضعی بود؛ بنابراین نتایج کلی را نباید به هر سرم یا کرمی تعمیم داد.": "Peptide is a group of compounds, not one formula. A 2026 systematic review examined 19 trials, but 17 studied oral peptides and only two studied topical forms; the overall findings should not be applied to every serum or cream.",
+      "مرور شواهد چه چیزی را پوشش داد؟": "What did the evidence review cover?",
+      "Vogue در ۵ ژانویهٔ ۲۰۲۶ از پپتیدها در میان روندهای مراقبت پوست نام برد؛ این منبع، گزارش روند است. یک مرور نظام‌مند و فراتحلیل در Frontiers in Medicine که ۱۷ مارس ۲۰۲۶ منتشر شد، ۱۹ کارآزمایی با مجموع ۱٬۳۴۱ شرکت‌کننده را گردآوری کرد: ۱۷ مطالعه پپتید خوراکی و تنها دو مطالعه نوع موضعی را بررسی می‌کردند. نویسندگان، ناهمسانی فرمول‌ها و این عدم توازن را از محدودیت‌های نتیجه‌گیری قطعی دانستند.": "On January 5, 2026, Vogue mentioned peptides among skincare trends; that source is trend reporting. A systematic review and meta-analysis published in Frontiers in Medicine on March 17, 2026 included 19 trials with 1,341 participants: 17 examined oral peptides and only two examined topical forms. The authors cited formula variability and this imbalance as limits to definitive conclusions.",
+      "هنگام انتخاب محصول به چه نکاتی توجه کنیم؟": "What should you consider when choosing a product?",
+      "نام پپتید به‌تنهایی دربارهٔ نوع ترکیب، غلظت، پایداری یا رسانش آن چیزی نمی‌گوید. برچسب و ادعاهای محصول را بررسی کن و انتظار نتیجهٔ یکسان از همهٔ فرمول‌ها نداشته باش. مرور پژوهش‌ها جای آزمون مستقل یک محصول خاص یا مشاورهٔ پزشکی نیست؛ در صورت تحریک، مصرف را متوقف و از متخصص راهنمایی بگیر.": "The word peptide alone does not tell you the compound, concentration, stability or delivery system. Check the product label and claims, and do not expect every formula to have the same effects. A research review is not an independent test of a specific product or medical advice; stop using a product if irritation occurs and seek professional guidance.",
+      "این گزارش بر پایهٔ منابع زیر تهیه شده است. تاریخ هر منبع کنار پیوند آن آمده است؛ مطلب، جمع‌بندی اختصاصی تحریریه است و بازنشر متن منبع نیست.": "This report draws on the sources below. Each source’s date appears beside its link; the article is an original editorial synthesis, not a reproduction of source text.",
+      "اکتوئین در محصولات پوستی؛ ترند مراقبت یا درمان ثابت‌شده؟": "Ectoin in Skincare: Trend Ingredient or Proven Treatment?",
+      "Skin longevity در ۲۰۲۶؛ تمرکز بر تداوم مراقبت، نه وعده جوانی فوری": "Skin Longevity in 2026: Consistent Care, Not Instant-Youth Promises",
+      "آرایش پوست محو و نرم در ۲۰۲۶؛ پایان ساتن چه فرقی دارد؟": "Soft-Focus Makeup in 2026: What a Satin Finish Means"
     }
   }
 }

@@ -142,7 +142,7 @@ def source_schema(article):
         "description": article["description"],
         "image": [absolute(article["image"])],
         "datePublished": PUBLISH_DATE,
-        "dateModified": MODIFIED_DATE,
+        "dateModified": article.get("modifiedAt", MODIFIED_DATE),
         "author": {"@type": "Organization", "name": NEWSROOM, "url": absolute(EDITORIAL_PATH)},
         "publisher": {"@type": "Organization", "name": PUBLISHER, "url": absolute("/")},
         "mainEntityOfPage": {"@type": "WebPage", "@id": absolute(article_path(article["slug"]))},
@@ -290,6 +290,7 @@ def update_sitemap():
     root = ET.fromstring(sitemap_text)
     namespace = "{http://www.sitemaps.org/schemas/sitemap/0.9}"
     managed_paths = ["/", NEWS_PATH, EDITORIAL_PATH] + [article_path(article["slug"]) for article in DATA["articles"]]
+    article_modified_dates = {article_path(article["slug"]): article.get("modifiedAt", MODIFIED_DATE) for article in DATA["articles"]}
     entries = {node.findtext(namespace + "loc"): node for node in root.findall(namespace + "url")}
     for article in DATA["articles"]:
         old_location = absolute(NEWS_PATH + article["slug"])
@@ -310,11 +311,12 @@ def update_sitemap():
                 root.remove(node)
     for path in managed_paths:
         loc = absolute(path)
+        modified_date = article_modified_dates.get(path, MODIFIED_DATE)
         node = entries.get(loc)
         if node is None:
             node = ET.SubElement(root, namespace + "url")
             ET.SubElement(node, namespace + "loc").text = loc
-            ET.SubElement(node, namespace + "lastmod").text = MODIFIED_DATE
+            ET.SubElement(node, namespace + "lastmod").text = modified_date
             ET.SubElement(node, namespace + "changefreq").text = "monthly"
             ET.SubElement(node, namespace + "priority").text = "0.7" if path in ("/", NEWS_PATH) else "0.6"
             entries[loc] = node
@@ -322,7 +324,7 @@ def update_sitemap():
         lastmod = node.find(namespace + "lastmod")
         if lastmod is None:
             lastmod = ET.SubElement(node, namespace + "lastmod")
-        lastmod.text = MODIFIED_DATE
+        lastmod.text = modified_date
     ET.register_namespace("", "http://www.sitemaps.org/schemas/sitemap/0.9")
     ET.indent(root, space="  ")
     xml_content = ET.tostring(root, encoding="unicode")
