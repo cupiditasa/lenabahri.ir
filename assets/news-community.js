@@ -1,4 +1,8 @@
 (() => {
+  const cmsNewsScript = document.createElement("script");
+  cmsNewsScript.src = "/assets/news-cms-content.js";
+  cmsNewsScript.defer = true;
+  document.head.append(cmsNewsScript);
   const detectedLocale = (document.documentElement.lang || "fa").split("-")[0].toLowerCase();
   const locale = detectedLocale === "zh-hans" ? "zh" : detectedLocale;
   const copy = {

@@ -17,7 +17,7 @@ test("SQLite adapter applies existing migrations and preserves private photo blo
     assert.deepEqual([...row.photo_data], [1, 2, 3]);
     assert.equal(row.photo_content_type, "image/png");
     const migrationRows = await database.prepare("SELECT id FROM schema_migrations ORDER BY id").all();
-    assert.deepEqual(migrationRows.results.map((migration) => migration.id), ["0001_bookings.sql", "0002_booking_photo_blobs.sql", "0003_customer_accounts.sql", "0004_news_community.sql"]);
+    assert.deepEqual(migrationRows.results.map((migration) => migration.id), ["0001_bookings.sql", "0002_booking_photo_blobs.sql", "0003_customer_accounts.sql", "0004_news_community.sql", "0005_admin_sms_outbox.sql", "0006_admin_cms.sql", "0007_admin_booking_management.sql"]);
     const profileTable = await database.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'customer_profiles'").first();
     assert.equal(profileTable.name, "customer_profiles");
   } finally {
@@ -52,6 +52,35 @@ test("cash booking stores the uploaded photo through the SQLite-backed API", asy
     assert.match(reference, /^[A-F0-9]{8}$/);
     const row = await database.prepare("SELECT photo_data FROM bookings").first();
     assert.deepEqual([...row.photo_data], [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0x00]);
+  } finally {
+    database.close();
+  }
+});
+
+test("admin booking-open setting is enforced by the booking API", async () => {
+  const database = openBookingDatabase(":memory:");
+  try {
+    await database.prepare("INSERT INTO cms_content (kind, payload_json, version, updated_at) VALUES ('settings', ?, 1, ?)")
+      .bind(JSON.stringify({ whatsappPhone: "989170000000", announcement: "", bookingsOpen: false }), 1).run();
+    const form = new FormData();
+    form.set("name", "Test Client");
+    form.set("phone", "09123456789");
+    form.set("service", "consultation");
+    form.set("payment_method", "consult");
+    form.set("consent", "on");
+    const response = await worker.fetch(new Request("https://lenabahri.ir/api/bookings", {
+      method: "POST",
+      headers: { Origin: "https://lenabahri.ir", "CF-Connecting-IP": "192.0.2.124" },
+      body: form
+    }), {
+      DB: database,
+      ADMIN_PASSWORD_HASH: "test-only",
+      SESSION_SECRET: "test-only",
+      RATE_LIMIT_SALT: "test-only"
+    });
+    assert.equal(response.status, 503);
+    const count = await database.prepare("SELECT COUNT(*) AS total FROM bookings").first();
+    assert.equal(count.total, 0);
   } finally {
     database.close();
   }
@@ -142,8 +171,12 @@ test("customer account endpoints work against SQLite and isolate profile photos"
     const community = await worker.fetch(new Request("https://lenabahri.ir/api/news/ss27-runway-beauty-2026/community"), env);
     const communityData = await community.json();
     assert.deepEqual(communityData.counts, { resonated: 0, "not-for-me": 1 });
-    assert.equal(communityData.comments[0].body, "A thoughtful comment");
-    assert.equal(JSON.stringify(communityData).includes("09123456789"), false);
+    assert.deepEqual(communityData.comments, []);
+    await database.prepare("UPDATE news_comments SET moderation_status = 'approved' WHERE article_slug = ?").bind("ss27-runway-beauty-2026").run();
+    const approvedCommunity = await worker.fetch(new Request("https://lenabahri.ir/api/news/ss27-runway-beauty-2026/community"), env);
+    const approvedData = await approvedCommunity.json();
+    assert.equal(approvedData.comments[0].body, "A thoughtful comment");
+    assert.equal(JSON.stringify(approvedData).includes("09123456789"), false);
   } finally {
     globalThis.fetch = originalFetch;
     database.close();

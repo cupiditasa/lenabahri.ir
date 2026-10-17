@@ -47,6 +47,14 @@ class SqliteD1Database {
     return new SqliteD1Statement(this.database, sql);
   }
 
+  async batch(statements) {
+    const execute = this.database.transaction(() => statements.map((statement) => {
+      const result = this.database.prepare(statement.sql).run(...statement.values);
+      return { success: true, meta: { changes: result.changes, last_row_id: result.lastInsertRowid } };
+    }));
+    return execute();
+  }
+
   close() {
     this.database.close();
   }

@@ -1,3 +1,5 @@
+import { handleCmsRequest } from "./cms.js";
+
 const SERVICES = new Set([
   "microblading",
   "hairstroke",
@@ -154,6 +156,70 @@ async function sendCustomerOtp(env, mobile, code) {
     return response.ok && Number(result.Status ?? result.status) === 1;
   } catch {
     return false;
+  }
+}
+
+function adminSmsConfiguration(env) {
+  const lineNumber = asciiDigits(env.SMSIR_LINE_NUMBER).trim();
+  const mobile = normalizeIranianMobile(env.ADMIN_NOTIFICATION_PHONE);
+  if (!env.SMSIR_API_KEY || !mobile || !/^\d{8,16}$/.test(lineNumber)) return null;
+  const numericLineNumber = Number(lineNumber);
+  if (!Number.isSafeInteger(numericLineNumber)) return null;
+  return { mobile, lineNumber: numericLineNumber };
+}
+
+async function sendAdminBookingSms(env, bookingId) {
+  const configuration = adminSmsConfiguration(env);
+  if (!configuration) throw new Error("SMS.ir notification settings are incomplete.");
+  const reference = bookingId.slice(0, 8).toUpperCase();
+  const response = await fetch("https://api.sms.ir/v1/send/bulk", {
+    method: "POST",
+    headers: {
+      "X-API-KEY": env.SMSIR_API_KEY,
+      "Content-Type": "application/json",
+      Accept: "application/json"
+    },
+    body: JSON.stringify({
+      lineNumber: configuration.lineNumber,
+      MessageText: `مدیریت سایت لنا بحری شما سفارش جدید دارید (کد سفارش ${reference}) https://lenabahri.ir`,
+      Mobiles: [configuration.mobile],
+      SendDateTime: null
+    }),
+    signal: AbortSignal.timeout(10_000)
+  });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok || Number(result.Status ?? result.status) !== 1) {
+    throw new Error("SMS.ir rejected the order notification.");
+  }
+}
+
+export async function processAdminSmsOutbox(env, bookingId = "") {
+  if (!env.DB || !adminSmsConfiguration(env)) return;
+  const now = Math.floor(Date.now() / 1000);
+  const due = await env.DB.prepare(
+    "SELECT booking_id FROM admin_sms_outbox WHERE ((status = 'pending' AND next_attempt_at <= ?) OR (status = 'sending' AND lease_until < ?)) AND (? = '' OR booking_id = ?) ORDER BY created_at LIMIT 10"
+  ).bind(now, now, bookingId, bookingId).all();
+
+  for (const row of due.results || []) {
+    const leaseUntil = now + 60;
+    const claim = await env.DB.prepare(
+      "UPDATE admin_sms_outbox SET status = 'sending', attempts = attempts + 1, lease_until = ? WHERE booking_id = ? AND ((status = 'pending' AND next_attempt_at <= ?) OR (status = 'sending' AND lease_until < ?))"
+    ).bind(leaseUntil, row.booking_id, now, now).run();
+    if (Number(claim.meta?.changes || 0) !== 1) continue;
+
+    const attemptRow = await env.DB.prepare("SELECT attempts FROM admin_sms_outbox WHERE booking_id = ?").bind(row.booking_id).first();
+    try {
+      await sendAdminBookingSms(env, row.booking_id);
+      await env.DB.prepare(
+        "UPDATE admin_sms_outbox SET status = 'sent', sent_at = ?, lease_until = NULL WHERE booking_id = ?"
+      ).bind(now, row.booking_id).run();
+    } catch {
+      const attempts = Math.max(1, Number(attemptRow?.attempts || 1));
+      const retryAt = now + Math.min(3600, 30 * (2 ** Math.min(attempts, 7)));
+      await env.DB.prepare(
+        "UPDATE admin_sms_outbox SET status = 'pending', next_attempt_at = ?, lease_until = NULL WHERE booking_id = ?"
+      ).bind(retryAt, row.booking_id).run();
+    }
   }
 }
 
@@ -319,7 +385,7 @@ async function newsCommunity(_request, env, slug) {
   if (!validArticleSlug(slug)) return json({ error: "شناسهٔ خبر معتبر نیست." }, 400);
   const [reactions, comments] = await Promise.all([
     env.DB.prepare("SELECT reaction, COUNT(*) AS count FROM news_reactions WHERE article_slug = ? GROUP BY reaction").bind(slug).all(),
-    env.DB.prepare("SELECT id, body, created_at FROM news_comments WHERE article_slug = ? ORDER BY created_at DESC LIMIT 50").bind(slug).all()
+    env.DB.prepare("SELECT id, body, created_at FROM news_comments WHERE article_slug = ? AND moderation_status = 'approved' ORDER BY created_at DESC LIMIT 50").bind(slug).all()
   ]);
   const counts = { resonated: 0, "not-for-me": 0 };
   for (const row of reactions.results || []) {
@@ -391,7 +457,15 @@ async function login(request, env) {
   return json({ ok: true }, 200, { "Set-Cookie": cookie });
 }
 
-async function createBooking(request, env) {
+async function createBooking(request, env, context) {
+  if (!assertSameOrigin(request)) return json({ error: "Invalid request origin." }, 403);
+  if (!env.ADMIN_PASSWORD_HASH || !env.SESSION_SECRET || !env.RATE_LIMIT_SALT) return json({ error: "Booking intake is not configured." }, 503);
+  const settingsRow = await env.DB.prepare("SELECT payload_json FROM cms_content WHERE kind = 'settings'").first().catch(() => null);
+  if (settingsRow) {
+    try {
+      if (JSON.parse(settingsRow.payload_json).bookingsOpen === false) return json({ error: "Booking requests are temporarily closed." }, 503);
+    } catch { return json({ error: "Booking settings are temporarily unavailable." }, 503); }
+  }
   if (!assertSameOrigin(request)) return json({ error: "مبدأ درخواست معتبر نیست." }, 403);
   if (!env.ADMIN_PASSWORD_HASH || !env.SESSION_SECRET || !env.RATE_LIMIT_SALT) return json({ error: "سامانه رزرو موقتاً آماده نیست." }, 503);
   if (!await rateLimit(request, env, "booking", 3600, 5)) return json({ error: "تعداد درخواست‌ها زیاد است؛ کمی بعد دوباره تلاش کنید." }, 429);
@@ -431,11 +505,22 @@ async function createBooking(request, env) {
   const photoData = photo instanceof File && photo.size > 0 ? await photo.arrayBuffer() : null;
   const photoContentType = photoData ? photo.type : null;
   try {
-    await env.DB.prepare(
+    const statements = [env.DB.prepare(
       "INSERT INTO bookings (id, name, phone, service, payment_method, message, photo_data, photo_content_type, status, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)"
-    ).bind(id, name, phone, service, paymentMethod, message, photoData, photoContentType, now).run();
+    ).bind(id, name, phone, service, paymentMethod, message, photoData, photoContentType, now)];
+    if (adminSmsConfiguration(env)) {
+      statements.push(env.DB.prepare(
+        "INSERT INTO admin_sms_outbox (booking_id, next_attempt_at, created_at) VALUES (?, ?, ?)"
+      ).bind(id, now, now));
+    }
+    await env.DB.batch(statements);
   } catch {
     return json({ error: "ثبت درخواست انجام نشد؛ لطفاً دوباره تلاش کنید." }, 503);
+  }
+  if (adminSmsConfiguration(env)) {
+    const dispatch = processAdminSmsOutbox(env, id).catch(() => {});
+    if (context?.waitUntil) context.waitUntil(dispatch);
+    else void dispatch;
   }
   await env.DB.prepare("DELETE FROM rate_limits WHERE window_start < ?").bind(now - 7200).run().catch(() => {});
   return json({ ok: true, reference: id.slice(0, 8).toUpperCase() }, 201);
@@ -445,6 +530,17 @@ async function adminBookings(request, env, url) {
   if (!await authenticated(request, env)) return json({ error: "برای مشاهدهٔ درخواست‌ها وارد شوید." }, 401);
   const status = clean(url.searchParams.get("status"), 20);
   const query = clean(url.searchParams.get("q"), 100);
+  const from = url.searchParams.has("from") ? Number(url.searchParams.get("from")) : null;
+  const to = url.searchParams.has("to") ? Number(url.searchParams.get("to")) : null;
+  const limit = Number(url.searchParams.get("limit") || 50);
+  const offset = Number(url.searchParams.get("offset") || 0);
+  if ((from !== null && (!Number.isSafeInteger(from) || from < 0))
+    || (to !== null && (!Number.isSafeInteger(to) || to < 0))
+    || (from !== null && to !== null && to <= from)
+    || !Number.isInteger(limit) || limit < 1 || limit > 2000
+    || !Number.isSafeInteger(offset) || offset < 0 || offset > 1_000_000) {
+    return json({ error: "Invalid booking filters or pagination." }, 400);
+  }
   const conditions = [];
   const values = [];
   if (STATUSES.has(status)) { conditions.push("status = ?"); values.push(status); }
@@ -453,12 +549,15 @@ async function adminBookings(request, env, url) {
     const pattern = `%${query.replace(/[\\%_]/g, "\\$&")}%`;
     values.push(pattern, pattern, pattern, pattern);
   }
+  if (from !== null) { conditions.push("created_at >= ?"); values.push(from); }
+  if (to !== null) { conditions.push("created_at < ?"); values.push(to); }
   const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : "";
   const result = await env.DB.prepare(
-    `SELECT id, name, phone, service, payment_method, message, photo_data IS NOT NULL AS has_photo, status, created_at FROM bookings ${where} ORDER BY created_at DESC LIMIT 200`
-  ).bind(...values).all();
+    `SELECT id, name, phone, service, payment_method, message, admin_note, photo_data IS NOT NULL AS has_photo, status, created_at FROM bookings ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`
+  ).bind(...values, limit, offset).all();
+  const totalRow = await env.DB.prepare(`SELECT COUNT(*) AS total FROM bookings ${where}`).bind(...values).first();
   const counts = await env.DB.prepare("SELECT status, COUNT(*) AS count FROM bookings GROUP BY status").all();
-  return json({ bookings: result.results || [], counts: counts.results || [] });
+  return json({ bookings: result.results || [], counts: counts.results || [], total: Number(totalRow?.total) || 0, limit, offset });
 }
 
 async function updateBooking(request, env, id) {
@@ -466,10 +565,24 @@ async function updateBooking(request, env, id) {
   if (!await authenticated(request, env)) return json({ error: "نشست ادمین منقضی شده است." }, 401);
   let data;
   try { data = await request.json(); } catch { return json({ error: "درخواست نامعتبر است." }, 400); }
-  const status = clean(data.status, 20);
+  const hasStatus = Object.hasOwn(data, "status");
+  const hasAdminNote = Object.hasOwn(data, "adminNote");
+  if (!hasStatus && !hasAdminNote) return json({ error: "A status or internal note is required." }, 400);
+  const existingBooking = await env.DB.prepare("SELECT status FROM bookings WHERE id = ?").bind(id).first();
+  if (!existingBooking) return json({ error: "Booking not found." }, 404);
+  const status = hasStatus ? clean(data.status, 20) : clean(existingBooking.status, 20);
+  const statusChanged = existingBooking.status !== status;
   if (!STATUSES.has(status)) return json({ error: "وضعیت انتخاب‌شده معتبر نیست." }, 400);
-  const result = await env.DB.prepare("UPDATE bookings SET status = ? WHERE id = ?").bind(status, id).run();
+  const adminNote = hasAdminNote && typeof data.adminNote === "string" ? clean(data.adminNote, 1000) : "";
+  if (hasAdminNote && (typeof data.adminNote !== "string" || data.adminNote.length > 1000)) return json({ error: "Invalid internal note." }, 400);
+  const result = hasAdminNote
+    ? await env.DB.prepare("UPDATE bookings SET status = ?, admin_note = ? WHERE id = ?").bind(status, adminNote, id).run()
+    : await env.DB.prepare("UPDATE bookings SET status = ? WHERE id = ?").bind(status, id).run();
   if (!result.meta?.changes) return json({ error: "درخواست پیدا نشد." }, 404);
+  if (hasAdminNote) await env.DB.prepare("INSERT INTO cms_audit_log (id, action, target_type, target_id, summary, created_at) VALUES (?, 'booking.note_updated', 'booking', ?, 'Internal booking note updated', ?)")
+    .bind(crypto.randomUUID(), id, Math.floor(Date.now() / 1000)).run();
+  if (statusChanged) await env.DB.prepare("INSERT INTO cms_audit_log (id, action, target_type, target_id, summary, created_at) VALUES (?, ?, 'booking', ?, ?, ?)")
+    .bind(crypto.randomUUID(), `booking.${status}`, id, `وضعیت رزرو به ${status} تغییر کرد`, Math.floor(Date.now() / 1000)).run();
   return json({ ok: true });
 }
 
@@ -505,11 +618,11 @@ async function cleanup(env) {
 }
 
 export default {
-  async fetch(request, env) {
+  async fetch(request, env, context) {
     const url = new URL(request.url);
     const path = url.pathname;
     if (path === "/api/health" && request.method === "GET") return json({ ok: true });
-    if (path === "/api/bookings" && request.method === "POST") return createBooking(request, env);
+    if (path === "/api/bookings" && request.method === "POST") return createBooking(request, env, context);
     if (path === "/api/customer/otp/request" && request.method === "POST") return requestCustomerOtp(request, env);
     if (path === "/api/customer/otp/verify" && request.method === "POST") return verifyCustomerOtp(request, env);
     if (path === "/api/customer/me" && request.method === "GET") return customerProfile(request, env);
@@ -532,9 +645,11 @@ export default {
     if (photoMatch && request.method === "GET") return bookingPhoto(request, env, photoMatch[1]);
     const bookingMatch = path.match(/^\/api\/admin\/bookings\/([\w-]+)$/);
     if (bookingMatch && request.method === "PATCH") return updateBooking(request, env, bookingMatch[1]);
+    const cmsResponse = await handleCmsRequest(request, env, { json, authenticated, assertSameOrigin, clean });
+    if (cmsResponse) return cmsResponse;
     return json({ error: "مسیر پیدا نشد." }, 404);
   },
   async scheduled(_event, env, context) {
-    context.waitUntil(cleanup(env));
+    context.waitUntil(Promise.all([cleanup(env), processAdminSmsOutbox(env)]));
   }
 };

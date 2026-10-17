@@ -2,6 +2,21 @@
   const data = window.LENA_GALLERY;
   if (!data) return;
   const locale = (document.documentElement.lang || "fa").split("-")[0].toLowerCase();
+  const escapeHtml = (value) => String(value ?? "").replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" })[character]);
+  try {
+    const response = await fetch("/api/public/content/portfolio", { cache: "no-cache" });
+    if (response.ok) {
+      const { content } = await response.json();
+      if (content) Object.assign(data, content);
+    }
+  } catch {}
+  const language = ["fa", "en", "ar", "zh"].includes(locale) ? locale : "fa";
+  for (const item of [...(data.projects || []), ...(data.awards || []), ...(data.people || [])]) {
+    if (item.translations?.[language]) Object.assign(item, item.translations[language]);
+  }
+  data.projects = (data.projects || []).filter((item) => item.active !== false);
+  data.awards = (data.awards || []).filter((item) => item.active !== false);
+  data.people = (data.people || []).filter((item) => item.active !== false);
   if (locale !== "fa") {
     let catalog = await window.LenaLocale?.catalogReady;
     if (!catalog) {
@@ -84,11 +99,11 @@
     const projects = filteredProjects();
     if (currentIndex >= projects.length) currentIndex = 0;
     rail.innerHTML = projects.map((project, index) => `
-      <article class="museum-card" data-project="${project.id}" aria-label="${project.title}">
-        <img src="${project.image}" alt="${project.title}" ${index > 2 ? 'loading="lazy"' : ""}>
+      <article class="museum-card" data-project="${project.id}" aria-label="${escapeHtml(project.title)}">
+        <img src="${escapeHtml(project.image)}" alt="${escapeHtml(project.title)}" ${index > 2 ? 'loading="lazy"' : ""}>
         <div class="museum-card-copy">
-          <span>${project.subtitle}</span>
-          <strong>${project.title}</strong>
+          <span>${escapeHtml(project.subtitle)}</span>
+          <strong>${escapeHtml(project.title)}</strong>
         </div>
       </article>
     `).join("");
@@ -141,7 +156,7 @@
 
   if (filters) {
     filters.innerHTML = data.categories.map((item) => `
-      <button class="filter-button ${item.id === "all" ? "active" : ""}" type="button" data-category="${item.id}">${item.label}</button>
+      <button class="filter-button ${item.id === "all" ? "active" : ""}" type="button" data-category="${escapeHtml(item.id)}">${escapeHtml(item.label)}</button>
     `).join("");
     filters.addEventListener("click", (event) => {
       const button = event.target.closest(".filter-button");
@@ -157,8 +172,8 @@
     if (!archiveGrid) return;
     archiveGrid.innerHTML = data.projects.slice(0, visibleArchive).map((project) => `
       <article class="archive-card" data-project="${project.id}" tabindex="0">
-        <img src="${project.image}" alt="${project.title}" loading="lazy">
-        <div><small>${project.subtitle}</small><strong>${project.title}</strong></div>
+        <img src="${escapeHtml(project.image)}" alt="${escapeHtml(project.title)}" loading="lazy">
+        <div><small>${escapeHtml(project.subtitle)}</small><strong>${escapeHtml(project.title)}</strong></div>
       </article>
     `).join("");
     archiveGrid.querySelectorAll(".archive-card").forEach((card) => {
@@ -270,12 +285,12 @@
   if (awardsStage) {
     const renderAwards = () => {
       awardsStage.innerHTML = data.awards.slice(0, visibleAwards).map((award) => `
-        <button class="award-item media-trigger" type="button" data-type="${award.type}" data-image="${award.image}" data-title="${award.title}">
-          <span class="award-frame"><img src="${award.image}" alt="${award.title}" loading="lazy"></span>
+        <button class="award-item media-trigger" type="button" data-type="${escapeHtml(award.type)}" data-image="${escapeHtml(award.image)}" data-title="${escapeHtml(award.title)}">
+          <span class="award-frame"><img src="${escapeHtml(award.image)}" alt="${escapeHtml(award.title)}" loading="lazy"></span>
           <span class="award-copy">
-            ${award.year ? `<time>${award.year}</time>` : ""}
-            <strong>${award.title}</strong>
-            <small>${[award.subtitle, award.location].filter(Boolean).join(" • ")}</small>
+            ${award.year ? `<time>${escapeHtml(award.year)}</time>` : ""}
+            <strong>${escapeHtml(award.title)}</strong>
+            <small>${escapeHtml([award.subtitle, award.location].filter(Boolean).join(" • "))}</small>
           </span>
         </button>
       `).join("");
@@ -360,11 +375,11 @@
           ? "en"
           : "fa";
     peopleGallery.innerHTML = data.people.map((person, index) => `
-      <a class="connection-item" href="${person.href}" aria-label="${person.name} — ${person.category}">
-        ${person.image ? `<img src="${person.image}" alt="${person.alt}" loading="lazy" draggable="false">` : `<span class="connection-placeholder" aria-hidden="true">${person.name}</span>`}
+      <a class="connection-item" href="${escapeHtml(person.href)}" aria-label="${escapeHtml(person.name)} — ${escapeHtml(person.category)}">
+        ${person.image ? `<img src="${escapeHtml(person.image)}" alt="${escapeHtml(person.alt)}" loading="lazy" draggable="false">` : `<span class="connection-placeholder" aria-hidden="true">${escapeHtml(person.name)}</span>`}
         <span class="connection-card-copy">
-          <span class="connection-caption"><b>${String(index + 1).padStart(2, "0")}</b><strong>${person.name}</strong></span>
-          <span class="connection-summary">${peopleSummaries[person.href.split("/").filter(Boolean).pop()]?.[locale] || ""}</span>
+          <span class="connection-caption"><b>${String(index + 1).padStart(2, "0")}</b><strong>${escapeHtml(person.name)}</strong></span>
+          <span class="connection-summary">${escapeHtml(peopleSummaries[person.href.split("/").filter(Boolean).pop()]?.[locale] || "")}</span>
         </span>
       </a>
     `).join("");

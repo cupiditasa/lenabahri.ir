@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { webcrypto, pbkdf2 } from "node:crypto";
 import { promisify } from "node:util";
 import { File } from "node:buffer";
-import worker from "../src/worker.js";
+import worker, { processAdminSmsOutbox } from "../src/worker.js";
 
 globalThis.crypto ||= webcrypto;
 globalThis.File ||= File;
@@ -26,14 +26,44 @@ class MockStatement {
     }
     if (this.sql.includes("INSERT INTO bookings")) {
       const [id, name, phone, service, payment_method, message, photo_data, photo_content_type, created_at] = this.values;
-      db.bookings.set(id, { id, name, phone, service, payment_method, message, photo_data, photo_content_type, status: "pending", created_at });
+      db.bookings.set(id, { id, name, phone, service, payment_method, message, photo_data, photo_content_type, admin_note: "", status: "pending", created_at });
+      return { meta: { changes: 1 } };
+    }
+    if (this.sql.startsWith("INSERT INTO admin_sms_outbox")) {
+      const [booking_id, next_attempt_at, created_at] = this.values;
+      db.adminSmsOutbox.set(booking_id, { booking_id, status: "pending", attempts: 0, next_attempt_at, lease_until: null, sent_at: null, created_at });
+      return { meta: { changes: 1 } };
+    }
+    if (this.sql.startsWith("UPDATE admin_sms_outbox SET status = 'sending'")) {
+      const [lease_until, booking_id, now, expiredLease] = this.values;
+      const item = db.adminSmsOutbox.get(booking_id);
+      if (!item || !((item.status === "pending" && item.next_attempt_at <= now) || (item.status === "sending" && item.lease_until < expiredLease))) return { meta: { changes: 0 } };
+      item.status = "sending";
+      item.attempts += 1;
+      item.lease_until = lease_until;
+      return { meta: { changes: 1 } };
+    }
+    if (this.sql.startsWith("UPDATE admin_sms_outbox SET status = 'sent'")) {
+      const [sent_at, booking_id] = this.values;
+      const item = db.adminSmsOutbox.get(booking_id);
+      if (!item) return { meta: { changes: 0 } };
+      Object.assign(item, { status: "sent", sent_at, lease_until: null });
+      return { meta: { changes: 1 } };
+    }
+    if (this.sql.startsWith("UPDATE admin_sms_outbox SET status = 'pending'")) {
+      const [next_attempt_at, booking_id] = this.values;
+      const item = db.adminSmsOutbox.get(booking_id);
+      if (!item) return { meta: { changes: 0 } };
+      Object.assign(item, { status: "pending", next_attempt_at, lease_until: null });
       return { meta: { changes: 1 } };
     }
     if (this.sql.startsWith("UPDATE bookings")) {
-      const [status, id] = this.values;
+      const id = this.values.at(-1);
       const booking = db.bookings.get(id);
       if (!booking) return { meta: { changes: 0 } };
-      booking.status = status;
+      let valueIndex = 0;
+      if (this.sql.includes("status = ?")) booking.status = this.values[valueIndex++];
+      if (this.sql.includes("admin_note = ?")) booking.admin_note = this.values[valueIndex];
       return { meta: { changes: 1 } };
     }
     if (this.sql.startsWith("INSERT INTO customer_otp_codes")) {
@@ -124,6 +154,15 @@ class MockStatement {
     return { meta: { changes: 0 } };
   }
   async all() {
+    if (this.sql.startsWith("SELECT booking_id FROM admin_sms_outbox")) {
+      const [now, expiredLease, bookingFilter] = this.values;
+      return { results: [...this.database.adminSmsOutbox.values()]
+        .filter((item) => (!bookingFilter || item.booking_id === bookingFilter)
+          && ((item.status === "pending" && item.next_attempt_at <= now) || (item.status === "sending" && item.lease_until < expiredLease)))
+        .sort((left, right) => left.created_at - right.created_at)
+        .slice(0, 10)
+        .map(({ booking_id }) => ({ booking_id })) };
+    }
     if (this.sql.startsWith("SELECT reaction, COUNT(*) AS count FROM news_reactions")) {
       const counts = new Map();
       for (const reaction of this.database.newsReactions.values()) {
@@ -143,6 +182,12 @@ class MockStatement {
       for (const booking of this.database.bookings.values()) counts.set(booking.status, (counts.get(booking.status) || 0) + 1);
       return { results: [...counts].map(([status, count]) => ({ status, count })) };
     }
+    if (this.sql.startsWith("SELECT id, name, phone, service, payment_method, message, admin_note")) {
+      const matching = this.database.matchingBookings(this.sql, this.values);
+      const limit = this.values.at(-2);
+      const offset = this.values.at(-1);
+      return { results: matching.slice(offset, offset + limit).map(({ photo_data, ...booking }) => ({ ...booking, has_photo: Boolean(photo_data) })) };
+    }
     if (this.sql.startsWith("SELECT id, service, payment_method, status, created_at FROM bookings WHERE SUBSTR")) {
       const phoneKey = this.values[0];
       return { results: [...this.database.bookings.values()]
@@ -160,6 +205,17 @@ class MockStatement {
     return { results };
   }
   async first() {
+    if (this.sql.startsWith("SELECT status FROM bookings")) {
+      const booking = this.database.bookings.get(this.values[0]);
+      return booking ? { status: booking.status } : null;
+    }
+    if (this.sql.startsWith("SELECT COUNT(*) AS total FROM bookings")) {
+      return { total: this.database.matchingBookings(this.sql, this.values).length };
+    }
+    if (this.sql.startsWith("SELECT attempts FROM admin_sms_outbox")) {
+      const item = this.database.adminSmsOutbox.get(this.values[0]);
+      return item ? { attempts: item.attempts } : null;
+    }
     if (this.sql.startsWith("SELECT reaction FROM news_reactions")) {
       const reaction = this.database.newsReactions.get(`${this.values[0]}:${this.values[1]}`);
       return reaction ? { reaction: reaction.reaction } : null;
@@ -191,8 +247,27 @@ class MockStatement {
 }
 
 class MockDatabase {
-  constructor() { this.bookings = new Map(); this.limits = new Map(); this.otpCodes = new Map(); this.profiles = new Map(); this.newsReactions = new Map(); this.newsComments = new Map(); }
+  constructor() { this.bookings = new Map(); this.adminSmsOutbox = new Map(); this.limits = new Map(); this.otpCodes = new Map(); this.profiles = new Map(); this.newsReactions = new Map(); this.newsComments = new Map(); }
+  matchingBookings(sql, values) {
+    let index = 0;
+    const status = sql.includes("status = ?") ? values[index++] : "";
+    const query = sql.includes("(name LIKE ?") ? String(values[index++]).slice(1, -1).toLowerCase() : "";
+    if (query) index += 3;
+    const from = sql.includes("created_at >= ?") ? values[index++] : null;
+    const to = sql.includes("created_at < ?") ? values[index++] : null;
+    return [...this.bookings.values()]
+      .filter((booking) => (!status || booking.status === status)
+        && (!query || [booking.name, booking.phone, booking.service, booking.id].some((value) => String(value).toLowerCase().includes(query)))
+        && (from === null || booking.created_at >= from)
+        && (to === null || booking.created_at < to))
+      .sort((left, right) => right.created_at - left.created_at);
+  }
   prepare(sql) { return new MockStatement(this, sql); }
+  async batch(statements) {
+    const results = [];
+    for (const statement of statements) results.push(await statement.run());
+    return results;
+  }
 }
 
 function makeRequest(path, { method = "GET", body, headers = {} } = {}) {
@@ -291,12 +366,82 @@ test("booking persists a photo privately and protects admin operations", async (
   assert.equal(photo.headers.get("cache-control"), "private, no-store");
   assert.deepEqual(Array.from(new Uint8Array(await photo.arrayBuffer())), [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0]);
 
-  const update = await worker.fetch(makeRequest(`/api/admin/bookings/${bookingId}`, { method: "PATCH", body: JSON.stringify({ status: "confirmed" }), headers: { Cookie: cookie, Origin: "https://lenabahri.ir", "Content-Type": "application/json" } }), env);
+  const update = await worker.fetch(makeRequest(`/api/admin/bookings/${bookingId}`, { method: "PATCH", body: JSON.stringify({ status: "confirmed", adminNote: "Call after 5 PM" }), headers: { Cookie: cookie, Origin: "https://lenabahri.ir", "Content-Type": "application/json" } }), env);
   assert.equal(update.status, 200);
   assert.equal(env.DB.bookings.get(bookingId).status, "confirmed");
+  assert.equal(env.DB.bookings.get(bookingId).admin_note, "Call after 5 PM");
+
+  const noteOnlyUpdate = await worker.fetch(makeRequest(`/api/admin/bookings/${bookingId}`, { method: "PATCH", body: JSON.stringify({ adminNote: "Follow up tomorrow" }), headers: { Cookie: cookie, Origin: "https://lenabahri.ir", "Content-Type": "application/json" } }), env);
+  assert.equal(noteOnlyUpdate.status, 200);
+  assert.equal(env.DB.bookings.get(bookingId).status, "confirmed");
+  assert.equal(env.DB.bookings.get(bookingId).admin_note, "Follow up tomorrow");
+
+  const paginated = await worker.fetch(makeRequest("/api/admin/bookings?limit=1&offset=0", { headers: { Cookie: cookie } }), env);
+  assert.equal(paginated.status, 200);
+  const paginatedData = await paginated.json();
+  assert.equal(paginatedData.total, 1);
+  assert.equal(paginatedData.bookings[0].admin_note, "Follow up tomorrow");
+  const now = Math.floor(Date.now() / 1000);
+  const range = await worker.fetch(makeRequest(`/api/admin/bookings?from=${now - 30 * day}&to=${now + 60}&limit=10`, { headers: { Cookie: cookie } }), env);
+  assert.equal(range.status, 200);
+  assert.equal((await range.json()).total, 1);
+  const invalidPage = await worker.fetch(makeRequest("/api/admin/bookings?limit=2001", { headers: { Cookie: cookie } }), env);
+  assert.equal(invalidPage.status, 400);
 
   const logout = await worker.fetch(makeRequest("/api/admin/logout", { method: "POST", headers: { Cookie: cookie, Origin: "https://lenabahri.ir" } }), env);
   assert.match(logout.headers.get("set-cookie"), /Max-Age=0/);
+});
+
+test("booking queues SMS.ir admin notifications and retries failed sends", async () => {
+  const env = {
+    DB: new MockDatabase(),
+    RATE_LIMIT_SALT: "test",
+    ADMIN_PASSWORD_HASH: "test-hash",
+    SESSION_SECRET: "test-session",
+    SMSIR_API_KEY: "test-only-key",
+    SMSIR_LINE_NUMBER: "30000000000000",
+    ADMIN_NOTIFICATION_PHONE: "09174922677"
+  };
+  const originalFetch = globalThis.fetch;
+  const tasks = [];
+  const payloads = [];
+  let sendCount = 0;
+  try {
+    globalThis.fetch = async (url, options) => {
+      assert.equal(url, "https://api.sms.ir/v1/send/bulk");
+      assert.equal(options.headers["X-API-KEY"], env.SMSIR_API_KEY);
+      payloads.push(JSON.parse(options.body));
+      sendCount += 1;
+      return sendCount === 1 ? Response.json({ Status: 0 }, { status: 503 }) : Response.json({ Status: 1 });
+    };
+    const form = bookingForm({ photo: false });
+    form.set("payment_method", "consult");
+    const response = await worker.fetch(makeRequest("/api/bookings", {
+      method: "POST",
+      body: form,
+      headers: { Origin: "https://lenabahri.ir" }
+    }), env, { waitUntil: (task) => tasks.push(task) });
+    assert.equal(response.status, 201);
+    await Promise.all(tasks);
+
+    const [bookingId] = env.DB.bookings.keys();
+    const outboxItem = env.DB.adminSmsOutbox.get(bookingId);
+    assert.equal(outboxItem.status, "pending");
+    assert.equal(outboxItem.attempts, 1);
+    assert.equal(payloads[0].lineNumber, Number(env.SMSIR_LINE_NUMBER));
+    assert.deepEqual(payloads[0].Mobiles, ["09174922677"]);
+    assert.match(payloads[0].MessageText, /شما سفارش جدید دارید/);
+    assert.match(payloads[0].MessageText, new RegExp(bookingId.slice(0, 8).toUpperCase()));
+    assert.equal(payloads[0].SendDateTime, null);
+
+    outboxItem.next_attempt_at = Math.floor(Date.now() / 1000) - 1;
+    await processAdminSmsOutbox(env);
+    assert.equal(sendCount, 2);
+    assert.equal(outboxItem.status, "sent");
+    assert.equal(outboxItem.attempts, 2);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
 });
 
 test("retention cleanup removes expired database rows and their stored photos", async () => {

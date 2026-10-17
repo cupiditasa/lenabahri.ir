@@ -424,3 +424,10 @@ document.addEventListener("click", (event) => {
 document.addEventListener("keydown", (event) => {
   if (event.key === "Escape") closeResultMenus();
 });
+
+if (!window.__lenaCmsPublicLoaderAdded) {
+  window.__lenaCmsPublicLoaderAdded = true;
+  const cmsPublicScript = document.createElement("script");
+  cmsPublicScript.src = "/assets/cms-public.js?v=20261016-admin-cms";
+  document.head.append(cmsPublicScript);
+}

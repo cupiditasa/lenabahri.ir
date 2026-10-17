@@ -8,7 +8,8 @@
   <meta name="referrer" content="no-referrer">
   <title>مدیریت درخواست‌ها | لنا بحری</title>
   <link rel="stylesheet" href="admin.css">
-  <script src="admin.js" defer></script>
+  <link rel="stylesheet" href="admin-cms.css?v=20261016-admin-panel">
+  <script src="admin.js?v=20261016-admin-panel" defer></script>
 </head>
 <body>
   <main class="admin-shell">
@@ -34,16 +35,63 @@
         <div><p class="eyebrow">مدیریت مجموعه</p><h1>درخواست‌های رزرو</h1><p class="muted">اطلاعات و عکس‌های ثبت‌شده فقط برای مدیر قابل مشاهده‌اند.</p></div>
         <button class="quiet-button" id="logoutButton" type="button">خروج امن</button>
       </div>
-      <div class="summary" id="summary" aria-label="خلاصه درخواست‌ها"></div>
-      <div class="toolbar">
-        <label class="search-label"><span class="sr-only">جست‌وجو</span><input id="searchInput" type="search" placeholder="جست‌وجوی نام، شماره یا کد پیگیری"></label>
-        <label class="filter-label"><span class="sr-only">فیلتر وضعیت</span><select id="statusFilter"><option value="">همهٔ وضعیت‌ها</option><option value="pending">در انتظار</option><option value="contacted">تماس گرفته شد</option><option value="confirmed">تأیید شد</option><option value="completed">انجام شد</option><option value="cancelled">لغو شد</option></select></label>
-        <button class="quiet-button" id="refreshButton" type="button">تازه‌سازی</button>
-      </div>
-      <p class="feedback" id="dashboardFeedback" role="status" aria-live="polite"></p>
-      <div class="booking-list" id="bookingList"></div>
+      <nav class="admin-tabs" aria-label="بخش‌های پنل مدیریت">
+        <button type="button" data-admin-tab="overview" aria-selected="true">گزارش عملکرد</button>
+        <button type="button" data-admin-tab="bookings" aria-selected="false">رزروها</button>
+        <button type="button" data-admin-tab="services" aria-selected="false">خدمات و قیمت‌ها</button>
+        <button type="button" data-admin-tab="portfolio" aria-selected="false">نمونه‌کارها</button>
+        <button type="button" data-admin-tab="news" aria-selected="false">خبرها</button>
+        <button type="button" data-admin-tab="comments" aria-selected="false">دیدگاه‌ها</button>
+        <button type="button" data-admin-tab="settings" aria-selected="false">تنظیمات سایت</button>
+        <button type="button" data-admin-tab="activity" aria-selected="false">سوابق تغییرات</button>
+      </nav>
+      <section class="admin-view" data-admin-panel="overview">
+        <div class="section-heading"><div><h2>گزارش عملکرد رزروها</h2><p class="muted">آمار درخواست‌های ثبت‌شده در بازهٔ انتخابی؛ داده‌های مشتری در گزارش تجمیعی نمایش داده نمی‌شوند.</p></div>
+          <div class="report-range"><label>از <input id="reportFrom" type="date"></label><label>تا <input id="reportTo" type="date"></label><button class="quiet-button" id="loadReport" type="button">به‌روزرسانی گزارش</button></div>
+        </div>
+        <div class="summary" id="reportSummary" aria-live="polite"></div>
+        <div class="report-columns"><section><h3>رزرو به تفکیک خدمت</h3><div id="serviceReport" class="report-list"></div></section><section><h3>اعلان پیامکی</h3><div id="smsReport" class="report-list"></div><p id="moderationSummary" class="muted"></p></section></div>
+        <p id="reportFeedback" class="feedback" role="status" aria-live="polite"></p>
+        <p class="muted">گزارش Google Analytics و Search Console تا زمان اتصال امن حساب‌های Google در این پنل در دسترس نیست.</p>
+      </section>
+      <section class="admin-view" data-admin-panel="bookings" hidden>
+        <div class="summary" id="summary" aria-label="خلاصه درخواست‌ها"></div>
+        <div class="toolbar">
+          <label class="search-label"><span class="sr-only">جست‌وجو</span><input id="searchInput" type="search" placeholder="جست‌وجوی نام، شماره یا کد پیگیری"></label>
+          <label class="filter-label"><span class="sr-only">فیلتر وضعیت</span><select id="statusFilter"><option value="">همهٔ وضعیت‌ها</option><option value="pending">در انتظار</option><option value="contacted">تماس گرفته شد</option><option value="confirmed">تأیید شد</option><option value="completed">انجام شد</option><option value="cancelled">لغو شد</option></select></label>
+          <button class="quiet-button" id="refreshButton" type="button">تازه‌سازی</button>
+        </div>
+        <p class="feedback" id="dashboardFeedback" role="status" aria-live="polite"></p>
+        <div class="booking-list" id="bookingList"></div>
+      </section>
+      <section class="admin-view" data-admin-panel="services" hidden>
+        <div class="section-heading"><div><h2>خدمات و قیمت‌ها</h2><p class="muted">قیمت‌ها به تومان‌اند؛ تغییرات در صفحهٔ خدمات و فرم رزرو نمایش داده می‌شود.</p></div><button id="saveServices" class="primary-button" type="button">ذخیرهٔ فهرست</button></div>
+        <div id="serviceEditor" class="cms-list"></div><p id="servicesFeedback" class="feedback" role="status"></p>
+      </section>
+      <section class="admin-view" data-admin-panel="portfolio" hidden>
+        <div class="section-heading"><div><h2>نمونه‌کارها و افتخارات</h2><p class="muted">عنوان، توضیحات، دسته‌بندی و نمایش هر مورد قابل مدیریت است.</p></div><button id="savePortfolio" class="primary-button" type="button">ذخیرهٔ گالری</button></div>
+        <form id="mediaUpload" class="media-upload"><label>تصویر JPG، PNG یا WebP<input name="file" type="file" accept="image/jpeg,image/png,image/webp" required></label><label>متن جایگزین تصویر<input name="alt" maxlength="300" required></label><label class="consent-check"><input name="display_consent" type="checkbox" value="yes" required> اجازهٔ لازم برای نمایش عمومی این تصویر را دارم</label><button class="quiet-button" type="submit">بارگذاری تصویر (حداکثر ۱٫۵ مگابایت)</button><span id="mediaResult" role="status"></span></form>
+        <div id="portfolioEditor" class="cms-list"></div><p id="portfolioFeedback" class="feedback" role="status"></p>
+      </section>
+      <section class="admin-view" data-admin-panel="news" hidden>
+        <div class="section-heading"><div><h2>مدیریت تحریریه</h2><p class="muted">خبر تازه ابتدا پیش‌نویس می‌شود؛ انتشار فقط پس از تکمیل و بررسی منبع انجام می‌شود.</p></div><button id="newArticle" class="quiet-button" type="button">خبر تازه</button></div>
+        <div class="news-admin-layout"><div><input id="newsSearch" class="cms-search" type="search" placeholder="جست‌وجوی عنوان یا شناسهٔ خبر"><div id="newsList" class="cms-list"></div></div>
+          <form id="newsForm" class="cms-form" hidden><label>شناسهٔ نشانی (slug)<input name="slug" pattern="[a-z0-9]+(-[a-z0-9]+)*" maxlength="120" required></label><label>زبان متن<select id="newsLocale"><option value="fa">فارسی</option><option value="en">English</option><option value="ar">العربية</option><option value="zh">中文</option></select></label><label>عنوان<input name="title" maxlength="160" required></label><label>عنوان SEO<input name="metaTitle" maxlength="65"></label><label>توضیح SEO<textarea name="description" maxlength="320" required></textarea></label><label>خلاصهٔ کارت خبر<textarea name="excerpt" maxlength="500" required></textarea></label><label>لید خبر<textarea name="lead" maxlength="1600" required></textarea></label><div class="cms-form-grid"><label>دسته<input name="category" maxlength="60" required></label><label>کلیدواژه‌ها، با ویرگول<input name="keywords" maxlength="400"></label></div><div class="cms-form-grid"><label>نام منبع<input name="sourceLabel" maxlength="100" required></label><label>عنوان منبع<input name="sourceTitle" maxlength="250" required></label></div><label>لینک مستقیم منبع<input name="sourceUrl" type="url" required></label><div class="cms-form-grid"><label>مسیر تصویر در سایت<input name="image" placeholder="/assets/news/example.jpg" required></label><label>متن جایگزین تصویر<input name="imageAlt" maxlength="300" required></label></div><div id="newsSections"></div><button id="addNewsSection" class="quiet-button" type="button">افزودن بخش</button><div class="cms-form-actions"><button class="quiet-button" name="status" value="draft" type="submit">ذخیرهٔ پیش‌نویس</button><button class="primary-button" name="status" value="published" type="submit">ذخیره و انتشار</button></div><p id="newsFeedback" class="feedback" role="status"></p></form>
+        </div>
+      </section>
+      <section class="admin-view" data-admin-panel="comments" hidden>
+        <div class="section-heading"><div><h2>مدیریت دیدگاه‌ها</h2><p class="muted">دیدگاه تازه تا زمان تأیید مدیر برای عموم نمایش داده نمی‌شود.</p></div><select id="commentFilter" aria-label="وضعیت دیدگاه"><option value="pending">در انتظار بررسی</option><option value="approved">تأییدشده</option><option value="rejected">ردشده</option><option value="all">همه</option></select></div><div id="commentsList" class="cms-list"></div><p id="commentsFeedback" class="feedback" role="status"></p>
+      </section>
+      <section class="admin-view" data-admin-panel="settings" hidden>
+        <h2>تنظیمات سایت</h2><p class="muted">شماره واتساپ و اطلاعیهٔ عمومی از API خصوصی خوانده می‌شود.</p><form id="settingsForm" class="cms-form"><label>شماره واتساپ بین‌المللی، فقط رقم<input name="whatsappPhone" inputmode="numeric" pattern="[0-9]{10,15}" required></label><label>اطلاعیهٔ عمومی (اختیاری)<textarea name="announcement" maxlength="300"></textarea></label><label class="consent-check"><input name="bookingsOpen" type="checkbox"> دریافت رزرو فعال باشد</label><button class="primary-button" type="submit">ذخیرهٔ تنظیمات</button><p id="settingsFeedback" class="feedback" role="status"></p></form>
+      </section>
+      <section class="admin-view" data-admin-panel="activity" hidden>
+        <h2>سوابق تغییرات مدیریتی</h2><p class="muted">گزارش عملیات بدون ذخیرهٔ متن سفارش یا اطلاعات تماس مشتری.</p><div id="activityList" class="cms-list"></div><p id="activityFeedback" class="feedback" role="status"></p>
+      </section>
     </section>
     <footer>سامانهٔ خصوصی رزرو لنا بحری · پاک‌سازی پایگاه فعال پس از ۹۰ روز انجام می‌شود؛ نسخهٔ فنی بازیابی ممکن است تا ۷ روز دیگر باقی بماند.</footer>
   </main>
+  <script src="/gallery-data.js" defer></script>
+  <script src="/admin-cms.js?v=20261016-admin-panel" defer></script>
 </body>
 </html>

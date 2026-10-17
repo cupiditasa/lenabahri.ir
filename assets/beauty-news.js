@@ -1,6 +1,5 @@
 document.addEventListener("DOMContentLoaded", () => {
   const filters = document.querySelectorAll("[data-filter]");
-  const cards = document.querySelectorAll(".news-card[data-category]");
 
   filters.forEach((filter) => {
     filter.addEventListener("click", (event) => {
@@ -8,10 +7,15 @@ document.addEventListener("DOMContentLoaded", () => {
       if (!category) return;
       event.preventDefault();
       filters.forEach((item) => item.classList.toggle("active", item === filter));
-      cards.forEach((card) => {
+      document.querySelectorAll(".news-card[data-category]").forEach((card) => {
         card.hidden = category !== "all" && card.dataset.category !== category;
       });
       history.replaceState(null, "", category === "all" ? location.pathname : filter.getAttribute("href"));
     });
   });
 });
+
+const cmsNewsScript = document.createElement("script");
+cmsNewsScript.src = "/assets/news-cms-content.js";
+cmsNewsScript.defer = true;
+document.head.append(cmsNewsScript);

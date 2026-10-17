@@ -14,6 +14,41 @@ const bookingList = document.querySelector("#bookingList");
 const summary = document.querySelector("#summary");
 const statusFilter = document.querySelector("#statusFilter");
 const searchInput = document.querySelector("#searchInput");
+const bookingPageSize = 50;
+let bookingOffset = 0;
+let bookingTotal = 0;
+const bookingToolbar = document.querySelector(".toolbar");
+const bookingDateFilter = document.createElement("div");
+bookingDateFilter.className = "booking-date-filter";
+const bookingFrom = document.createElement("input");
+bookingFrom.type = "date";
+bookingFrom.setAttribute("aria-label", "از تاریخ");
+const bookingTo = document.createElement("input");
+bookingTo.type = "date";
+bookingTo.setAttribute("aria-label", "تا تاریخ");
+const bookingFromLabel = document.createElement("label");
+bookingFromLabel.append(document.createTextNode("از "), bookingFrom);
+const bookingToLabel = document.createElement("label");
+bookingToLabel.append(document.createTextNode("تا "), bookingTo);
+bookingDateFilter.append(bookingFromLabel, bookingToLabel);
+const exportBookingsButton = document.createElement("button");
+exportBookingsButton.className = "quiet-button";
+exportBookingsButton.type = "button";
+exportBookingsButton.textContent = "دریافت CSV";
+bookingToolbar.append(bookingDateFilter, exportBookingsButton);
+const bookingPager = document.createElement("div");
+bookingPager.className = "booking-pager";
+const previousBookingsButton = document.createElement("button");
+previousBookingsButton.className = "quiet-button";
+previousBookingsButton.type = "button";
+previousBookingsButton.textContent = "قبلی";
+const bookingPageLabel = document.createElement("span");
+const nextBookingsButton = document.createElement("button");
+nextBookingsButton.className = "quiet-button";
+nextBookingsButton.type = "button";
+nextBookingsButton.textContent = "بعدی";
+bookingPager.append(previousBookingsButton, bookingPageLabel, nextBookingsButton);
+bookingList.before(bookingPager);
 const adminLocale = (document.documentElement.lang || "fa").split("-")[0].toLowerCase();
 const adminCopy = {
   fa: {
@@ -143,6 +178,27 @@ function renderBooking(booking) {
     finally { status.disabled = false; }
   });
   actions.append(status);
+  const internalNote = document.createElement("details");
+  internalNote.className = "booking-internal-note";
+  internalNote.append(node("summary", "", "یادداشت داخلی مدیر"));
+  const noteInput = document.createElement("textarea");
+  noteInput.maxLength = 1000;
+  noteInput.rows = 3;
+  noteInput.value = booking.admin_note || "";
+  noteInput.setAttribute("aria-label", "یادداشت داخلی؛ برای مشتری نمایش داده نمی‌شود");
+  const saveNote = node("button", "quiet-button", "ذخیره یادداشت");
+  saveNote.type = "button";
+  saveNote.addEventListener("click", async () => {
+    saveNote.disabled = true;
+    try {
+      await api(`/api/admin/bookings/${encodeURIComponent(booking.id)}`, { method: "PATCH", body: JSON.stringify({ status: booking.status, adminNote: noteInput.value }) });
+      booking.admin_note = noteInput.value.trim();
+      saveNote.textContent = "ذخیره شد";
+    } catch (error) { dashboardFeedback.textContent = error.message; }
+    finally { saveNote.disabled = false; }
+  });
+  internalNote.append(noteInput, saveNote);
+  card.append(internalNote);
   if (booking.has_photo) {
     const photo = node("a", "photo-link", adminCopy.privatePhoto);
     photo.href = `/api/admin/bookings/${encodeURIComponent(booking.id)}/photo`;
@@ -159,17 +215,70 @@ async function loadBookings() {
   const params = new URLSearchParams();
   if (statusFilter.value) params.set("status", statusFilter.value);
   if (searchInput.value.trim()) params.set("q", searchInput.value.trim());
+  if (bookingFrom.value) params.set("from", String(Math.floor(new Date(`${bookingFrom.value}T00:00:00Z`).getTime() / 1000)));
+  if (bookingTo.value) params.set("to", String(Math.floor(new Date(`${bookingTo.value}T00:00:00Z`).getTime() / 1000) + 86400));
+  params.set("limit", String(bookingPageSize));
+  params.set("offset", String(bookingOffset));
   try {
     const result = await api(`/api/admin/bookings?${params}`);
+    bookingTotal = Number(result.total) || 0;
     renderSummary(result.counts);
     bookingList.replaceChildren();
     if (result.bookings.length) result.bookings.forEach((booking) => bookingList.append(renderBooking(booking)));
     else bookingList.append(node("div", "empty-state", adminCopy.empty));
-    dashboardFeedback.textContent = result.bookings.length >= 200 ? adminCopy.recent : "";
+    const currentPage = bookingTotal ? Math.floor(bookingOffset / bookingPageSize) + 1 : 0;
+    const pageCount = Math.ceil(bookingTotal / bookingPageSize);
+    bookingPageLabel.textContent = `صفحه ${currentPage} از ${pageCount} · ${bookingTotal} درخواست`;
+    previousBookingsButton.disabled = bookingOffset <= 0;
+    nextBookingsButton.disabled = bookingOffset + bookingPageSize >= bookingTotal;
+    dashboardFeedback.textContent = "";
   } catch (error) {
     if (error.message === adminCopy.session) showLogin();
     dashboardFeedback.textContent = error.message;
   }
+}
+
+function bookingFilterParams(limit, offset) {
+  const params = new URLSearchParams();
+  if (statusFilter.value) params.set("status", statusFilter.value);
+  if (searchInput.value.trim()) params.set("q", searchInput.value.trim());
+  if (bookingFrom.value) params.set("from", String(Math.floor(new Date(`${bookingFrom.value}T00:00:00Z`).getTime() / 1000)));
+  if (bookingTo.value) params.set("to", String(Math.floor(new Date(`${bookingTo.value}T00:00:00Z`).getTime() / 1000) + 86400));
+  params.set("limit", String(limit));
+  params.set("offset", String(offset));
+  return params;
+}
+
+async function exportBookings() {
+  exportBookingsButton.disabled = true;
+  dashboardFeedback.textContent = "در حال آماده‌سازی فایل CSV…";
+  try {
+    const allBookings = [];
+    let total = 0;
+    for (let offset = 0; ; offset += 2000) {
+      const result = await api(`/api/admin/bookings?${bookingFilterParams(2000, offset)}`);
+      total = Number(result.total) || 0;
+      if (total > 20000) throw new Error("برای خروجی گرفتن، بازهٔ تاریخ را محدودتر کنید (حداکثر ۲۰٬۰۰۰ ردیف)." );
+      allBookings.push(...result.bookings);
+      if (!result.bookings.length || allBookings.length >= total) break;
+    }
+    const fields = ["id", "name", "phone", "service", "payment_method", "status", "created_at", "message", "admin_note"];
+    const csvCell = (value) => {
+      const text = String(value ?? "").replace(/[\r\n]+/g, " ");
+      const safe = /^\s*[=+\-@\t]/.test(text) ? `'${text}` : text;
+      return `"${safe.replace(/"/g, '""')}"`;
+    };
+    const rows = [fields.map(csvCell).join(","), ...allBookings.map((booking) => fields.map((field) => csvCell(booking[field])).join(","))];
+    const blob = new Blob(["\uFEFF", rows.join("\r\n")], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `lena-bookings-${new Date().toISOString().slice(0, 10)}.csv`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+    dashboardFeedback.textContent = `${allBookings.length} درخواست در فایل خروجی قرار گرفت.`;
+  } catch (error) { dashboardFeedback.textContent = error.message; }
+  finally { exportBookingsButton.disabled = false; }
 }
 
 function showLogin() {
@@ -189,6 +298,7 @@ loginForm.addEventListener("submit", async (event) => {
     loginForm.elements.username.value = "lena";
     loginPanel.hidden = true;
     dashboard.hidden = false;
+    window.dispatchEvent(new Event("lena:admin-ready"));
     await loadBookings();
   } catch (error) { loginFeedback.textContent = error.message; }
   finally { button.disabled = false; }
@@ -199,13 +309,24 @@ document.querySelector("#logoutButton").addEventListener("click", async () => {
   showLogin();
 });
 document.querySelector("#refreshButton").addEventListener("click", loadBookings);
-statusFilter.addEventListener("change", loadBookings);
+const resetBookingPage = () => { bookingOffset = 0; void loadBookings(); };
+statusFilter.addEventListener("change", resetBookingPage);
+bookingFrom.addEventListener("change", resetBookingPage);
+bookingTo.addEventListener("change", resetBookingPage);
+previousBookingsButton.addEventListener("click", () => { bookingOffset = Math.max(0, bookingOffset - bookingPageSize); void loadBookings(); });
+nextBookingsButton.addEventListener("click", () => { if (bookingOffset + bookingPageSize < bookingTotal) { bookingOffset += bookingPageSize; void loadBookings(); } });
+exportBookingsButton.addEventListener("click", exportBookings);
 let searchTimer;
-searchInput.addEventListener("input", () => { clearTimeout(searchTimer); searchTimer = setTimeout(loadBookings, 250); });
+searchInput.addEventListener("input", () => { clearTimeout(searchTimer); searchTimer = setTimeout(resetBookingPage, 250); });
 
 api("/api/admin/bookings").then((result) => {
   loginPanel.hidden = true;
   dashboard.hidden = false;
+  window.dispatchEvent(new Event("lena:admin-ready"));
+  bookingTotal = Number(result.total) || 0;
   renderSummary(result.counts);
   bookingList.replaceChildren(...result.bookings.map(renderBooking));
+  bookingPageLabel.textContent = `صفحه ${bookingTotal ? 1 : 0} از ${Math.ceil(bookingTotal / bookingPageSize)} · ${bookingTotal} درخواست`;
+  previousBookingsButton.disabled = true;
+  nextBookingsButton.disabled = bookingPageSize >= bookingTotal;
 }).catch(() => {});
