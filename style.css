@@ -547,7 +547,7 @@ button, input, textarea, select { font: inherit; }
   opacity: 1;
 }
 .result-card__focus-filter--secondary {
-  --focus-image: url("assets/gallery/portfolio/work-02.jpg");
+  --focus-image: url("assets/gallery/portfolio/work-01.jpg");
 }
 .result-card.is-secondary .result-card__focus-filter--primary { opacity: 0; }
 .result-card.is-secondary .result-card__focus-filter--secondary { opacity: 1; }

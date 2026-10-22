@@ -1,13 +1,26 @@
  (async () => {
   const data = window.LENA_GALLERY;
   if (!data) return;
+  const staticProjects = data.projects || [];
   const locale = (document.documentElement.lang || "fa").split("-")[0].toLowerCase();
   const escapeHtml = (value) => String(value ?? "").replace(/[&<>"']/g, (character) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" })[character]);
   try {
     const response = await fetch("/api/public/content/portfolio", { cache: "no-cache" });
     if (response.ok) {
       const { content } = await response.json();
-      if (content) Object.assign(data, content);
+      if (content) {
+        const cmsProjects = Array.isArray(content.projects) ? content.projects : null;
+        Object.assign(data, content);
+        if (cmsProjects) {
+          const additions = staticProjects.filter((project) => project.id >= 14);
+          const additionIds = new Set(additions.map((project) => project.id));
+          const cmsById = new Map(cmsProjects.map((project) => [project.id, project]));
+          data.projects = [
+            ...additions.map((project) => ({ ...project, ...(cmsById.get(project.id) || {}) })),
+            ...cmsProjects.filter((project) => !additionIds.has(project.id))
+          ];
+        }
+      }
     }
   } catch {}
   const language = ["fa", "en", "ar", "zh"].includes(locale) ? locale : "fa";
@@ -15,6 +28,11 @@
     if (item.translations?.[language]) Object.assign(item, item.translations[language]);
   }
   data.projects = (data.projects || []).filter((item) => item.active !== false);
+  data.projects = data.projects.filter((item) => {
+    if (String(item.image || "").endsWith("/work-02.jpg")) return false;
+    if (String(item.detailImage || "").endsWith("/work-02.jpg")) delete item.detailImage;
+    return true;
+  });
   data.awards = (data.awards || []).filter((item) => item.active !== false);
   data.people = (data.people || []).filter((item) => item.active !== false);
   if (locale !== "fa") {
@@ -195,7 +213,8 @@
   const modalMediaCurrent = modal?.querySelector("#modalMediaCurrent");
 
   const setModalSlide = (nextSlide, animate = true) => {
-    modalSlide = (nextSlide + 2) % 2;
+    const slideCount = modalMedia?.querySelectorAll(".modal-shot:not([hidden])").length || 1;
+    modalSlide = ((nextSlide % slideCount) + slideCount) % slideCount;
     if (modalMediaTrack) {
       modalMediaTrack.classList.toggle("without-transition", !animate);
       modalMediaTrack.style.transform = `translate3d(${-modalSlide * 50}%, 0, 0)`;
@@ -213,7 +232,15 @@
     const project = data.projects.find((item) => item.id === id);
     if (!project) return;
     modal.querySelector("#modalImageMain").src = project.image;
-    modal.querySelector("#modalImageDetail").src = project.detailImage;
+    const detailImage = modal.querySelector("#modalImageDetail");
+    const detailShot = detailImage.closest(".modal-shot");
+    detailShot.hidden = !project.detailImage;
+    if (project.detailImage) detailImage.src = project.detailImage;
+    else detailImage.removeAttribute("src");
+    modalMedia.classList.toggle("single-shot", !project.detailImage);
+    modal.querySelectorAll(".modal-media-arrow, .modal-media-status, .modal-swipe-note").forEach((control) => {
+      control.hidden = !project.detailImage;
+    });
     modal.querySelector("#modalCategory").textContent = project.subtitle;
     modal.querySelector("#modalTitle").textContent = project.title;
     modal.querySelector("#modalDescription").textContent = project.description;

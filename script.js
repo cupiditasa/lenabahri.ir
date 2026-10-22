@@ -288,6 +288,7 @@ resultCards.forEach((card) => {
   const previousButton = card.querySelector(".result-card__nav-button--previous");
   const nextButton = card.querySelector(".result-card__nav-button--next");
   const progressLabels = card.querySelectorAll(".result-card__nav-progress b");
+  const hasSecondaryImage = Boolean(card.querySelector(".result-card__image--secondary"));
   let pointerStart = null;
   let pointerDelta = 0;
   let dragged = false;
@@ -321,6 +322,7 @@ resultCards.forEach((card) => {
   };
 
   const changeView = (direction) => {
+    if (!hasSecondaryImage) return;
     const nextView = (activeView + (direction > 0 ? 1 : -1) + 2) % 2;
     setView(nextView, direction);
   };

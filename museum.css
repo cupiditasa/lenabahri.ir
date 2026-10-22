@@ -414,6 +414,8 @@
   transition: transform .58s cubic-bezier(.22,.8,.25,1);
   will-change: transform;
 }
+.modal-media.single-shot .modal-media-track { width: 100%; }
+.modal-media.single-shot .modal-shot { flex-basis: 100%; width: 100%; }
 .modal-media-track.without-transition { transition: none; }
 .modal-shot {
   position: relative;

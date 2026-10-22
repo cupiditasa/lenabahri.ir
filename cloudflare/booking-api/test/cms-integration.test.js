@@ -44,7 +44,7 @@ test("CMS admin APIs authenticate, persist content, moderate publishing, and rep
 
     const portfolio = {
       categories: [{ id: "all", label: "All" }, { id: "brow", label: "Brow" }],
-      projects: [{ id: 1, category: "brow", title: "Natural brow", description: "A sample portfolio item.", image: "assets/gallery/portfolio/work-01.jpg", detailImage: "assets/gallery/portfolio/work-02.jpg" }],
+      projects: [{ id: 1, category: "brow", title: "Natural brow", description: "A sample portfolio item.", image: "assets/gallery/portfolio/work-01.jpg", detailImage: "assets/gallery/portfolio/work-11.jpg" }],
       awards: [],
       people: []
     };

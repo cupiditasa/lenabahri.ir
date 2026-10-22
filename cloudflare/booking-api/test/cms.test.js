@@ -20,7 +20,7 @@ test("service validation rejects duplicate IDs and inverted price ranges", () =>
 test("portfolio validation accepts site media and rejects unsafe image paths", () => {
   const portfolio = {
     categories: [{ id: "all", label: "همه" }, { id: "brow", label: "ابرو" }],
-    projects: [{ id: 1, category: "brow", title: "نمونه", description: "توضیح", image: "/assets/gallery/portfolio/work-01.jpg", detailImage: "/assets/gallery/portfolio/work-02.jpg" }],
+    projects: [{ id: 1, category: "brow", title: "نمونه", description: "توضیح", image: "/assets/gallery/portfolio/work-01.jpg", detailImage: "/assets/gallery/portfolio/work-11.jpg" }],
     awards: [{ title: "مدرک", subtitle: "دوره", image: "/assets/gallery/awards/award-01.jpg" }],
     people: [{ name: "Artist", category: "دیدار", alt: "تصویر", image: "/assets/gallery/people/event-01.jpg", href: "/people/artist/" }]
   };
