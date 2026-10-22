@@ -263,12 +263,14 @@
 }
 
 .museum-card[aria-hidden="true"] { pointer-events: none; }
-.museum-card img { height: 100%; object-fit: cover; }
+.museum-card img { height: 100%; object-fit: cover; cursor: zoom-in; }
+.museum-card img:focus-visible, .archive-card img:focus-visible { outline: 3px solid #efc986; outline-offset: -5px; }
 .museum-card::after {
   content: "";
   position: absolute;
   inset: 0;
   background: linear-gradient(to top, rgba(8,5,4,.88), transparent 45%);
+  pointer-events: none;
 }
 .museum-card-copy {
   position: absolute;
@@ -365,9 +367,9 @@
   background: #241914;
   cursor: pointer;
 }
-.archive-card img { height: 100%; object-fit: cover; transition: transform .65s; }
+.archive-card img { height: 100%; object-fit: cover; transition: transform .65s; cursor: zoom-in; }
 .archive-card:hover img { transform: scale(1.05); }
-.archive-card::after { content: ""; position: absolute; inset: 0; background: linear-gradient(to top, rgba(15,9,7,.85), transparent 55%); }
+.archive-card::after { content: ""; position: absolute; inset: 0; background: linear-gradient(to top, rgba(15,9,7,.85), transparent 55%); pointer-events: none; }
 .archive-card div { position: absolute; z-index: 3; right: 20px; bottom: 16px; color: #fff; }
 .archive-card small { display: block; color: #e0b679; font: 9px Georgia, serif; letter-spacing: .12em; }
 .archive-card strong { font-size: 17px; font-weight: 400; }
@@ -522,6 +524,78 @@
   cursor: pointer;
   font-size: 21px;
 }
+
+.photo-viewer {
+  position: fixed;
+  z-index: 200;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  visibility: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .24s, visibility .24s;
+  background: #080706;
+}
+.photo-viewer.open { visibility: visible; opacity: 1; pointer-events: auto; }
+.photo-viewer-backdrop { position: absolute; inset: 0; background: rgba(5,4,3,.96); }
+.photo-viewer-figure {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  width: min(100vw, 1700px);
+  height: 100dvh;
+  margin: 0;
+  padding: 58px 86px 24px;
+}
+.photo-viewer-image-stage {
+  min-height: 0;
+  display: grid;
+  place-items: center;
+  touch-action: pan-y;
+  user-select: none;
+  cursor: grab;
+}
+.photo-viewer-image-stage:active { cursor: grabbing; }
+.photo-viewer-image-stage img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  pointer-events: none;
+  -webkit-user-drag: none;
+}
+.photo-viewer-caption {
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  color: #f5eadb;
+  font-size: 14px;
+}
+.photo-viewer-count { display: flex; align-items: center; gap: 5px; direction: ltr; color: #c5a476; font: 12px Georgia, serif; white-space: nowrap; }
+.photo-viewer-count b { color: #f0cb8e; font-weight: 400; }
+.photo-viewer-close, .photo-viewer-arrow {
+  position: absolute;
+  z-index: 2;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(239,201,134,.5);
+  border-radius: 50%;
+  color: #f4e6d2;
+  background: rgba(15,11,8,.82);
+  cursor: pointer;
+  transition: background .2s, color .2s, transform .2s;
+}
+.photo-viewer-close:hover, .photo-viewer-arrow:hover { color: #17100c; background: #efc986; transform: scale(1.06); }
+.photo-viewer-close { top: 18px; right: 22px; width: 46px; height: 46px; font-size: 26px; }
+.photo-viewer-arrow { top: 50%; width: 50px; height: 50px; font-size: 28px; transform: translateY(-50%); }
+.photo-viewer-arrow:hover { transform: translateY(-50%) scale(1.06); }
+.photo-viewer-arrow--prev { left: 22px; }
+.photo-viewer-arrow--next { right: 22px; }
+.photo-viewer button:focus-visible { outline: 3px solid #efc986; outline-offset: 3px; }
 
 .about-museum-hero {
   min-height: 78svh;
@@ -857,6 +931,12 @@
   .modal-media-arrow.next { right: 10px; }
   .modal-swipe-note { top: 11px; }
   .modal-copy { padding: 25px; }
+  .photo-viewer-figure { padding: 62px 12px 18px; }
+  .photo-viewer-caption { min-height: 44px; font-size: 12px; }
+  .photo-viewer-close { top: 12px; right: 12px; width: 42px; height: 42px; }
+  .photo-viewer-arrow { width: 40px; height: 40px; font-size: 23px; }
+  .photo-viewer-arrow--prev { left: 9px; }
+  .photo-viewer-arrow--next { right: 9px; }
   .about-stats { grid-template-columns: 1fr; }
   .about-museum-copy h1 { font-size: 38px; }
   .about-portrait { height: 470px; width: 100%; max-width: 100%; }

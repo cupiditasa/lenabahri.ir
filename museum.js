@@ -80,6 +80,11 @@
   const archiveGrid = document.querySelector("#archiveGrid");
   const loadMore = document.querySelector("#loadMore");
   const modal = document.querySelector("#projectModal");
+  const photoViewer = document.querySelector("#photoViewer");
+  const photoViewerImage = document.querySelector("#photoViewerImage");
+  const photoViewerTitle = document.querySelector("#photoViewerTitle");
+  const photoViewerCurrent = document.querySelector("#photoViewerCurrent");
+  const photoViewerTotal = document.querySelector("#photoViewerTotal");
   let category = "all";
   let currentIndex = 0;
   let visibleArchive = 6;
@@ -90,6 +95,10 @@
   let modalDragPointer = null;
   let modalDragStart = 0;
   let modalDragDistance = 0;
+  let photoViewerIndex = 0;
+  let photoViewerTrigger = null;
+  let photoViewerPointer = null;
+  let photoViewerStartX = 0;
 
   const filteredProjects = () => data.projects.filter((project) => category === "all" || project.category === category);
 
@@ -106,6 +115,8 @@
       card.style.zIndex = String(20 - Math.abs(offset));
       card.setAttribute("aria-hidden", String(Math.abs(offset) > 2));
       card.tabIndex = offset === 0 ? 0 : -1;
+      const image = card.querySelector("img");
+      if (image) image.tabIndex = Math.abs(offset) <= 2 ? 0 : -1;
     });
     if (currentLabel) currentLabel.textContent = String(currentIndex + 1).padStart(2, "0");
     if (totalLabel) totalLabel.textContent = String(cards.length).padStart(2, "0");
@@ -118,7 +129,7 @@
     if (currentIndex >= projects.length) currentIndex = 0;
     rail.innerHTML = projects.map((project, index) => `
       <article class="museum-card" data-project="${project.id}" aria-label="${escapeHtml(project.title)}">
-        <img src="${escapeHtml(project.image)}" alt="${escapeHtml(project.title)}" ${index > 2 ? 'loading="lazy"' : ""}>
+        <img src="${escapeHtml(project.image)}" alt="${escapeHtml(project.title)}" role="button" aria-label="${escapeHtml(project.title)}" tabindex="-1" draggable="false" ${index > 2 ? 'loading="lazy"' : ""}>
         <div class="museum-card-copy">
           <span>${escapeHtml(project.subtitle)}</span>
           <strong>${escapeHtml(project.title)}</strong>
@@ -126,6 +137,18 @@
       </article>
     `).join("");
     rail.querySelectorAll(".museum-card").forEach((card) => {
+      const image = card.querySelector("img");
+      image?.addEventListener("pointerdown", (event) => event.stopPropagation());
+      image?.addEventListener("click", (event) => {
+        event.stopPropagation();
+        if (!railWasDragged) openPhotoViewer(Number(card.dataset.project), image);
+      });
+      image?.addEventListener("keydown", (event) => {
+        if (event.key !== "Enter" && event.key !== " ") return;
+        event.preventDefault();
+        event.stopPropagation();
+        openPhotoViewer(Number(card.dataset.project), image);
+      });
       card.addEventListener("click", () => {
         if (!railWasDragged) openProject(Number(card.dataset.project));
       });
@@ -190,14 +213,25 @@
     if (!archiveGrid) return;
     archiveGrid.innerHTML = data.projects.slice(0, visibleArchive).map((project) => `
       <article class="archive-card" data-project="${project.id}" tabindex="0">
-        <img src="${escapeHtml(project.image)}" alt="${escapeHtml(project.title)}" loading="lazy">
+        <img src="${escapeHtml(project.image)}" alt="${escapeHtml(project.title)}" role="button" aria-label="${escapeHtml(project.title)}" tabindex="0" draggable="false" loading="lazy">
         <div><small>${escapeHtml(project.subtitle)}</small><strong>${escapeHtml(project.title)}</strong></div>
       </article>
     `).join("");
     archiveGrid.querySelectorAll(".archive-card").forEach((card) => {
+      const image = card.querySelector("img");
+      image?.addEventListener("click", (event) => {
+        event.stopPropagation();
+        openPhotoViewer(Number(card.dataset.project), image);
+      });
+      image?.addEventListener("keydown", (event) => {
+        if (event.key !== "Enter" && event.key !== " ") return;
+        event.preventDefault();
+        event.stopPropagation();
+        openPhotoViewer(Number(card.dataset.project), image);
+      });
       card.addEventListener("click", () => openProject(Number(card.dataset.project)));
       card.addEventListener("keydown", (event) => {
-        if (event.key === "Enter") openProject(Number(card.dataset.project));
+        if (event.target === card && (event.key === "Enter" || event.key === " ")) openProject(Number(card.dataset.project));
       });
     });
     if (loadMore) loadMore.hidden = visibleArchive >= data.projects.length;
@@ -226,6 +260,71 @@
   };
 
   const moveModal = (direction) => setModalSlide(modalSlide + direction);
+
+  const formatViewerNumber = (value) => window.LenaLocale?.formatDigits(String(value)) || String(value);
+
+  function updatePhotoViewer() {
+    if (!photoViewer || !data.projects.length) return;
+    const project = data.projects[photoViewerIndex];
+    photoViewerImage.src = project.image;
+    photoViewerImage.alt = project.title;
+    photoViewerTitle.textContent = project.title;
+    photoViewerCurrent.textContent = formatViewerNumber(photoViewerIndex + 1);
+    photoViewerTotal.textContent = formatViewerNumber(data.projects.length);
+  }
+
+  function openPhotoViewer(id, trigger) {
+    if (!photoViewer) return;
+    const index = data.projects.findIndex((project) => project.id === id);
+    if (index < 0) return;
+    photoViewerIndex = index;
+    photoViewerTrigger = trigger || document.activeElement;
+    updatePhotoViewer();
+    photoViewer.classList.add("open");
+    photoViewer.setAttribute("aria-hidden", "false");
+    body.style.overflow = "hidden";
+    photoViewer.querySelector("#photoViewerClose")?.focus();
+  }
+
+  function movePhotoViewer(direction) {
+    if (!data.projects.length) return;
+    photoViewerIndex = (photoViewerIndex + direction + data.projects.length) % data.projects.length;
+    updatePhotoViewer();
+  }
+
+  function closePhotoViewer() {
+    if (!photoViewer) return;
+    photoViewer.classList.remove("open");
+    photoViewer.setAttribute("aria-hidden", "true");
+    photoViewerImage?.removeAttribute("src");
+    body.style.overflow = "";
+    if (photoViewerTrigger?.isConnected) photoViewerTrigger.focus();
+    photoViewerTrigger = null;
+  }
+
+  photoViewer?.querySelector("#photoViewerClose")?.addEventListener("click", closePhotoViewer);
+  photoViewer?.querySelector("#photoViewerBackdrop")?.addEventListener("click", closePhotoViewer);
+  photoViewer?.querySelector("#photoViewerPrevious")?.addEventListener("click", () => movePhotoViewer(-1));
+  photoViewer?.querySelector("#photoViewerNext")?.addEventListener("click", () => movePhotoViewer(1));
+
+  const photoViewerMedia = photoViewer?.querySelector("#photoViewerMedia");
+  photoViewerMedia?.addEventListener("pointerdown", (event) => {
+    if (event.pointerType === "mouse" && event.button !== 0) return;
+    photoViewerPointer = event.pointerId;
+    photoViewerStartX = event.clientX;
+    photoViewerMedia.setPointerCapture?.(event.pointerId);
+  });
+  const endPhotoViewerSwipe = (event) => {
+    if (event.pointerId !== photoViewerPointer) return;
+    const distance = event.clientX - photoViewerStartX;
+    photoViewerPointer = null;
+    if (photoViewerMedia.hasPointerCapture?.(event.pointerId)) photoViewerMedia.releasePointerCapture(event.pointerId);
+    if (Math.abs(distance) >= Math.min(72, photoViewerMedia.clientWidth * .12)) {
+      movePhotoViewer(distance < 0 ? 1 : -1);
+    }
+  };
+  photoViewerMedia?.addEventListener("pointerup", endPhotoViewerSwipe);
+  photoViewerMedia?.addEventListener("pointercancel", endPhotoViewerSwipe);
 
   function openProject(id) {
     if (!modal) return;
@@ -299,6 +398,18 @@
   modalMedia?.addEventListener("pointercancel", endModalDrag);
 
   window.addEventListener("keydown", (event) => {
+    if (photoViewer?.classList.contains("open")) {
+      if (event.key === "Escape") closePhotoViewer();
+      if (event.key === "ArrowLeft") {
+        event.preventDefault();
+        movePhotoViewer(-1);
+      }
+      if (event.key === "ArrowRight") {
+        event.preventDefault();
+        movePhotoViewer(1);
+      }
+      return;
+    }
     if (event.key === "Escape") closeModal();
     if (modal?.classList.contains("open") && event.key === "ArrowLeft") moveModal(-1);
     if (modal?.classList.contains("open") && event.key === "ArrowRight") moveModal(1);

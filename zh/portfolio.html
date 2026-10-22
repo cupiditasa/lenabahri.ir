@@ -21,7 +21,7 @@
   <meta name="twitter:image" content="https://lenabahri.ir/assets/gallery/portfolio/work-01.jpg">
   <link rel="icon" href="/assets/brand/logo-lb-optimized.png">
   <link rel="stylesheet" href="/style.css?v=20261022-portfolio-refresh">
-  <link rel="stylesheet" href="/museum.css?v=20261022-portfolio-refresh">
+  <link rel="stylesheet" href="/museum.css?v=20261022-photo-viewer">
   <link rel="stylesheet" href="/assistant-widget.css?v=20260813-10">
 <link rel="canonical" href="https://lenabahri.ir/zh/portfolio.html">
   <link rel="alternate" hreflang="en" href="https://lenabahri.ir/en/portfolio.html">
@@ -163,6 +163,17 @@
     </div>
   </div>
 
+  <div class="photo-viewer" id="photoViewer" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="photoViewerTitle">
+    <div class="photo-viewer-backdrop" id="photoViewerBackdrop"></div>
+    <button class="photo-viewer-close" id="photoViewerClose" type="button" aria-label="关闭全屏图片">×</button>
+    <button class="photo-viewer-arrow photo-viewer-arrow--prev" id="photoViewerPrevious" type="button" aria-label="上一张图片">‹</button>
+    <figure class="photo-viewer-figure">
+      <div class="photo-viewer-image-stage" id="photoViewerMedia"><img id="photoViewerImage" alt="" draggable="false"></div>
+      <figcaption class="photo-viewer-caption"><span id="photoViewerTitle"></span><span class="photo-viewer-count" aria-live="polite"><b id="photoViewerCurrent"></b><span aria-hidden="true"> / </span><span id="photoViewerTotal"></span></span></figcaption>
+    </figure>
+    <button class="photo-viewer-arrow photo-viewer-arrow--next" id="photoViewerNext" type="button" aria-label="下一张图片">›</button>
+  </div>
+
   <footer class="site-footer compact-footer" id="site-footer">
     <div class="footer-top">
       <a class="brand footer-brand" href="/zh/">
@@ -185,7 +196,7 @@
   <script src="/gallery-data.js?v=20261022-portfolio-refresh"></script>
   <script src="/script.js?v=20261022-portfolio-refresh"></script>
   <script src="/assets/cms-public.js?v=20261016-admin-cms" defer></script>
-  <script src="/museum.js?v=20261022-portfolio-refresh"></script>
+  <script src="/museum.js?v=20261022-photo-viewer"></script>
   <script src="/assistant-config.js?v=20260926-tunnel-1"></script>
   <script src="/assistant-widget.js?v=20260814-video-3"></script>
 <script src="/assets/site-locale.js?v=20261014-1" defer></script>
