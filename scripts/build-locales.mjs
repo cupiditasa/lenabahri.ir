@@ -1,6 +1,7 @@
 import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
+import { runInNewContext } from "node:vm";
 import { fileURLToPath } from "node:url";
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -39,7 +40,26 @@ function formatLocaleDigits(value, locale) {
 }
 
 function isTranslatable(value) {
-  return /[\u0600-\u06ff]/u.test(value) && !/^\s*[\d۰-۹\s.,:؛٬٫٪%+−–—/|()#]+\s*$/u.test(value);
+  return /[\u0600-\u06ff]/u.test(value) && !/^\s*[\d٠-٩۰-۹\s.,:؛٬٫٪%+−–—/|()#]+\s*$/u.test(value);
+}
+
+function collectTranslatableValues(value, target) {
+  if (typeof value === "string") {
+    if (isTranslatable(value)) target.add(value);
+    return;
+  }
+  if (Array.isArray(value)) {
+    value.forEach((item) => collectTranslatableValues(item, target));
+    return;
+  }
+  if (!value || typeof value !== "object") return;
+  const translations = value.translations;
+  Object.entries(value).forEach(([key, item]) => {
+    if (key === "translations") return;
+    const translatedInEveryLocale = typeof item === "string"
+      && locales.every((locale) => typeof translations?.[locale]?.[key] === "string" && translations[locale][key].trim());
+    if (!translatedInEveryLocale) collectTranslatableValues(item, target);
+  });
 }
 
 async function walk(directory, files = []) {
@@ -284,14 +304,11 @@ const buildPages = requestedPathPrefix
 if (requestedPathPrefix && !buildPages.length) throw new Error(`No source pages match: ${requestedPathPrefix}`);
 const pageSet = new Set(relativePages);
 const runtimeTextValues = new Set();
-for (const relativePath of ["gallery-data.js", "service-videos.js"]) {
+for (const [relativePath, globalName] of [["gallery-data.js", "LENA_GALLERY"], ["service-videos.js", "LENA_VIDEO_LIBRARY"]]) {
   const source = await readFile(path.join(projectRoot, relativePath), "utf8");
-  for (const match of source.matchAll(/"((?:\\.|[^"\\])*)"/g)) {
-    try {
-      const value = JSON.parse(`"${match[1]}"`);
-      if (isTranslatable(value)) runtimeTextValues.add(value);
-    } catch {}
-  }
+  const window = {};
+  runInNewContext(source, { window });
+  collectTranslatableValues(window[globalName], runtimeTextValues);
 }
 const catalogs = {};
 const reports = {};

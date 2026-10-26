@@ -38,7 +38,7 @@
   const api = async (url, options = {}) => {
     const response = await fetch(url, { ...options, credentials: "same-origin", headers: { ...(options.body ? { "Content-Type": "application/json" } : {}), ...(options.headers || {}) } });
     if (!response.ok) throw Object.assign(new Error(response.status === 429 ? text.rateError : text.genericError), { status: response.status });
-    return result;
+    return response.json();
   };
   const status = node("p", "community-status");
   status.setAttribute("role", "status");

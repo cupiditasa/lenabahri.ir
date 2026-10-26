@@ -204,9 +204,9 @@
       aria-label="${text("assistant", "دستیار هوشمند لنا")}" aria-hidden="true">
       <header class="lena-assistant__header">
         <div class="lena-assistant__portrait" aria-hidden="true">
-          <video class="lena-assistant__portrait-video" muted playsinline preload="metadata"
+          <video class="lena-assistant__portrait-video" muted playsinline preload="none"
             poster="${asset("robot-assistant-poster.jpg")}">
-            <source src="${asset("robot-assistant.mp4")}" type="video/mp4">
+            <source data-src="${asset("robot-assistant.mp4")}" type="video/mp4">
           </video>
           <span class="lena-assistant__presence"></span>
         </div>
@@ -254,9 +254,9 @@
       </span>
       <span class="lena-assistant__character" aria-hidden="true">
         <span class="lena-assistant__character-aura"></span>
-        <video class="lena-assistant__character-video" muted playsinline preload="auto"
+        <video class="lena-assistant__character-video" muted playsinline preload="none"
           poster="${asset("robot-assistant-poster.jpg")}">
-          <source src="${asset("robot-assistant.mp4")}" type="video/mp4">
+          <source data-src="${asset("robot-assistant.mp4")}" type="video/mp4">
         </video>
         <span class="lena-assistant__character-status"></span>
       </span>
@@ -279,6 +279,7 @@
   const input = widget.querySelector("textarea");
   const submit = form.querySelector("button");
   const videos = [...widget.querySelectorAll("video")];
+  let assistantVideosLoaded = false;
   const character = widget.querySelector(".lena-assistant__character");
   widget.classList.add("has-video-character");
   widget.dir = locale === "ar" || locale === "fa" ? "rtl" : "ltr";
@@ -474,7 +475,6 @@
       video.pause();
       video.currentTime = currentTime;
     }, { once: true });
-    video.load();
   });
   setArcLook(205.5);
   scheduleBlink();
@@ -502,6 +502,18 @@
 
   const pauseVideos = () => videos.forEach((video) => video.pause());
 
+  const loadAssistantVideos = () => {
+    if (assistantVideosLoaded) return;
+    assistantVideosLoaded = true;
+    videos.forEach((video) => {
+      const source = video.querySelector("source[data-src]");
+      if (!source) return;
+      source.src = source.dataset.src;
+      source.removeAttribute("data-src");
+      video.load();
+    });
+  };
+
   const setOpen = (open) => {
     state.open = open;
     widget.classList.toggle("is-open", open);
@@ -510,6 +522,7 @@
     nudge.classList.remove("is-visible");
 
     if (open) {
+      if (!reducedMotion.matches) loadAssistantVideos();
       if (!state.busy && !widget.classList.contains("is-speaking")) {
         setCharacterMood("attentive");
         setDesiredLook(-.28, -.18, false);
