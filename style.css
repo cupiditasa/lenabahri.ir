@@ -938,6 +938,7 @@ button, input, textarea, select { font: inherit; }
   .brand-mark { width: 38px; height: 38px; }
   .hero { gap: 28px; padding: 94px 18px 54px; }
   .hero-frame { height: min(50svh, 410px); min-height: 330px; border-radius: 145px 145px 22px 22px; }
+  .hero-description { padding-right: 86px; }
   .hero-awards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
   .hero-awards div { padding-left: 8px; }
   .hero-awards strong { font-size: 15px; }
