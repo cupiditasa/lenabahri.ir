@@ -814,15 +814,15 @@ body:has(.media-modal.open) .lena-assistant {
   }
 
   .lena-assistant__launcher {
-    width: 96px;
-    min-width: 96px;
-    height: 112px;
+    width: 82px;
+    min-width: 82px;
+    height: 94px;
   }
 
   .lena-assistant__launcher-copy { display: none; }
   .lena-assistant__character {
-    width: 90px;
-    height: 108px;
+    width: 78px;
+    height: 90px;
   }
 
   .lena-assistant__panel {
