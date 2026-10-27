@@ -267,8 +267,6 @@ if (bookingForm) {
 }
 
 const resultCards = document.querySelectorAll("[data-result-card]");
-const finePointer = window.matchMedia("(pointer: fine)");
-const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 
 function closeResultMenus(exceptCard) {
   resultCards.forEach((card) => {
@@ -282,24 +280,8 @@ function closeResultMenus(exceptCard) {
 }
 
 resultCards.forEach((card) => {
-  const surface = card.querySelector(".result-card__surface");
   const trigger = card.querySelector(".result-card__trigger");
   const menu = card.querySelector(".result-card__menu");
-  const previousButton = card.querySelector(".result-card__nav-button--previous");
-  const nextButton = card.querySelector(".result-card__nav-button--next");
-  const progressLabels = card.querySelectorAll(".result-card__nav-progress b");
-  const hasSecondaryImage = Boolean(card.querySelector(".result-card__image--secondary"));
-  let pointerStart = null;
-  let pointerDelta = 0;
-  let dragged = false;
-  let activeView = 0;
-
-  const resetTilt = () => {
-    card.style.setProperty("--rx", "0deg");
-    card.style.setProperty("--ry", "0deg");
-    card.style.setProperty("--mx", "50%");
-    card.style.setProperty("--my", "50%");
-  };
 
   const toggleResultMenu = () => {
     const willOpen = !card.classList.contains("is-menu-open");
@@ -309,111 +291,9 @@ resultCards.forEach((card) => {
     menu.setAttribute("aria-hidden", String(!willOpen));
   };
 
-  const setView = (view, direction = 0) => {
-    activeView = Math.max(0, Math.min(1, view));
-    card.classList.toggle("is-secondary", activeView === 1);
-    card.classList.remove("slide-next", "slide-previous");
-    if (direction > 0) card.classList.add("slide-next");
-    if (direction < 0) card.classList.add("slide-previous");
-    progressLabels.forEach((label, index) => {
-      label.setAttribute("aria-current", index === activeView ? "true" : "false");
-    });
-    window.setTimeout(() => card.classList.remove("slide-next", "slide-previous"), 420);
-  };
-
-  const changeView = (direction) => {
-    if (!hasSecondaryImage) return;
-    const nextView = (activeView + (direction > 0 ? 1 : -1) + 2) % 2;
-    setView(nextView, direction);
-  };
-
-  setView(0);
-
-  surface.addEventListener("pointermove", (event) => {
-    if (finePointer.matches && !reducedMotion.matches) {
-      const rect = surface.getBoundingClientRect();
-      const x = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
-      const y = Math.max(0, Math.min(1, (event.clientY - rect.top) / rect.height));
-      card.style.setProperty("--rx", `${(0.5 - y) * 8}deg`);
-      card.style.setProperty("--ry", `${(x - 0.5) * 10}deg`);
-      card.style.setProperty("--mx", `${x * 100}%`);
-      card.style.setProperty("--my", `${y * 100}%`);
-    }
-
-    if (pointerStart) {
-      pointerDelta = event.clientX - pointerStart.x;
-      if (Math.abs(pointerDelta) > 8) {
-        dragged = true;
-        card.classList.add("is-dragging");
-      }
-    }
-  });
-
-  surface.addEventListener("pointerleave", () => {
-    if (pointerStart) return;
-    pointerStart = null;
-    pointerDelta = 0;
-    dragged = false;
-    card.classList.remove("is-dragging");
-    resetTilt();
-  });
-
-  surface.addEventListener("pointerdown", (event) => {
-    if (event.target.closest(".result-card__trigger, .result-card__nav-button, .result-card__menu")) return;
-    pointerStart = { x: event.clientX, y: event.clientY };
-    pointerDelta = 0;
-    dragged = false;
-    surface.setPointerCapture?.(event.pointerId);
-  });
-
-  const finishPress = (event) => {
-    if (!pointerStart) return;
-    const threshold = Math.min(58, surface.clientWidth * 0.16);
-    if (Math.abs(pointerDelta) >= threshold) {
-      changeView(pointerDelta < 0 ? 1 : -1);
-      if (navigator.vibrate) navigator.vibrate(12);
-    } else if (!dragged && event?.type === "pointerup") {
-      const rect = surface.getBoundingClientRect();
-      const isLeftHalf = event.clientX < rect.left + rect.width / 2;
-      changeView(isLeftHalf ? -1 : 1);
-    }
-    pointerStart = null;
-    pointerDelta = 0;
-    window.setTimeout(() => {
-      dragged = false;
-      card.classList.remove("is-dragging");
-    }, 30);
-  };
-
-  surface.addEventListener("pointerup", finishPress);
-  surface.addEventListener("pointercancel", finishPress);
-
   trigger.addEventListener("click", (event) => {
     event.stopPropagation();
     toggleResultMenu();
-  });
-
-  previousButton?.addEventListener("click", (event) => {
-    event.stopPropagation();
-    changeView(-1);
-  });
-
-  nextButton?.addEventListener("click", (event) => {
-    event.stopPropagation();
-    changeView(1);
-  });
-
-  surface.setAttribute("tabindex", "0");
-  surface.setAttribute("role", "group");
-  surface.addEventListener("keydown", (event) => {
-    if (event.key === "ArrowLeft") {
-      event.preventDefault();
-      changeView(-1);
-    }
-    if (event.key === "ArrowRight") {
-      event.preventDefault();
-      changeView(1);
-    }
   });
 
   menu.addEventListener("click", () => closeResultMenus());
