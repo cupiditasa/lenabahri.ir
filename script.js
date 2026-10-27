@@ -297,6 +297,8 @@ resultCards.forEach((card) => {
   const resetTilt = () => {
     card.style.setProperty("--rx", "0deg");
     card.style.setProperty("--ry", "0deg");
+    card.style.setProperty("--mx", "50%");
+    card.style.setProperty("--my", "50%");
   };
 
   const toggleResultMenu = () => {
@@ -334,6 +336,8 @@ resultCards.forEach((card) => {
       const y = Math.max(0, Math.min(1, (event.clientY - rect.top) / rect.height));
       card.style.setProperty("--rx", `${(0.5 - y) * 8}deg`);
       card.style.setProperty("--ry", `${(x - 0.5) * 10}deg`);
+      card.style.setProperty("--mx", `${x * 100}%`);
+      card.style.setProperty("--my", `${y * 100}%`);
     }
 
     if (pointerStart) {

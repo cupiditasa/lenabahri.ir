@@ -419,6 +419,8 @@ button, input, textarea, select { font: inherit; }
 .result-card {
   --rx: 0deg;
   --ry: 0deg;
+  --mx: 50%;
+  --my: 50%;
   position: relative;
   height: clamp(430px, 39vw, 570px);
   min-width: 0;
@@ -433,10 +435,10 @@ button, input, textarea, select { font: inherit; }
   position: relative;
   height: 100%;
   overflow: hidden;
-  border: 1px solid rgba(241,210,164,.2);
+  border: 1px solid rgba(241,210,164,.14);
   border-radius: clamp(20px, 2vw, 30px);
-  background: linear-gradient(155deg, #241912, #110d0b 72%);
-  box-shadow: 0 22px 52px rgba(0,0,0,.28);
+  background: #17110e;
+  box-shadow: 0 25px 65px rgba(0,0,0,.3);
   transform: rotateX(var(--rx)) rotateY(var(--ry));
   transform-style: preserve-3d;
   transition: transform .16s ease-out, border-color .35s ease, box-shadow .35s ease;
@@ -444,17 +446,14 @@ button, input, textarea, select { font: inherit; }
 }
 .result-card:hover .result-card__surface,
 .result-card.is-menu-open .result-card__surface {
-  border-color: rgba(241,210,164,.44);
-  box-shadow: 0 30px 64px rgba(0,0,0,.42), 0 0 0 1px rgba(216,172,114,.08);
+  border-color: rgba(241,210,164,.38);
+  box-shadow: 0 38px 80px rgba(0,0,0,.55), 0 0 0 1px rgba(216,172,114,.06);
 }
 .result-card__media {
   position: absolute;
-  inset: 10px 10px 82px;
+  inset: 0;
   overflow: hidden;
-  border: 1px solid rgba(255,244,229,.09);
-  border-radius: clamp(15px, 1.35vw, 22px);
-  background: #1a130f;
-  box-shadow: 0 12px 28px rgba(0,0,0,.2);
+  background: #17110e;
   cursor: grab;
   touch-action: pan-y;
   user-select: none;
@@ -468,35 +467,157 @@ button, input, textarea, select { font: inherit; }
   position: absolute;
   inset: 0;
   z-index: 5;
-  border-radius: inherit;
-  background: linear-gradient(145deg, rgba(255,255,255,.045), transparent 24%);
+  background:
+    linear-gradient(to top, rgba(8,5,4,.96) 0%, rgba(8,5,4,.28) 34%, transparent 63%),
+    linear-gradient(120deg, rgba(8,5,4,.17), transparent 42%, rgba(216,172,114,.06));
   pointer-events: none;
 }
 .result-card__image {
   position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
+  inset: -2%;
+  width: 104%;
+  height: 104%;
   object-fit: cover;
-  transform: scale(1) translate3d(0,0,0);
-  transition: opacity .6s cubic-bezier(.2,.7,.2,1), transform 1s cubic-bezier(.2,.7,.2,1);
+  transform: scale(1.01) translate3d(0,0,0);
+  transition: opacity .6s cubic-bezier(.2,.7,.2,1), transform 1s cubic-bezier(.2,.7,.2,1), filter .6s ease;
   will-change: opacity, transform;
 }
 .result-card__image--secondary {
   z-index: 1;
   opacity: 0;
-  transform: scale(1.035);
+  transform: scale(1.08);
 }
 .result-card.is-secondary .result-card__image--primary {
   opacity: 0;
-  transform: scale(1.035);
+  transform: scale(1.06);
 }
 .result-card.is-secondary .result-card__image--secondary {
   opacity: 1;
-  transform: scale(1);
+  transform: scale(1.01);
 }
-.result-card:not(.is-secondary):hover .result-card__image--primary,
-.result-card.is-secondary:hover .result-card__image--secondary { transform: scale(1.035); }
+.result-card__focus-filter {
+  --focus-x: 50%;
+  --focus-y: 35%;
+  --focus-w: 37%;
+  --focus-h: 18%;
+  position: absolute;
+  z-index: 3;
+  inset: -4%;
+  opacity: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(135deg, rgba(20,12,8,.34), rgba(184,132,70,.12) 48%, rgba(5,3,3,.5)),
+    var(--focus-image);
+  background-size: cover;
+  background-position: center;
+  filter: blur(9px) saturate(.64) sepia(.22) brightness(.54) contrast(1.08);
+  transform: scale(1.075);
+  -webkit-mask-image: radial-gradient(
+    ellipse var(--focus-w) var(--focus-h) at var(--focus-x) var(--focus-y),
+    transparent 0 43%,
+    rgba(0,0,0,.16) 55%,
+    rgba(0,0,0,.72) 72%,
+    #000 100%
+  );
+  mask-image: radial-gradient(
+    ellipse var(--focus-w) var(--focus-h) at var(--focus-x) var(--focus-y),
+    transparent 0 43%,
+    rgba(0,0,0,.16) 55%,
+    rgba(0,0,0,.72) 72%,
+    #000 100%
+  );
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  transition: opacity .52s cubic-bezier(.2,.7,.2,1), transform .9s cubic-bezier(.2,.7,.2,1);
+}
+.result-card__focus-filter::before {
+  content: "";
+  position: absolute;
+  inset: 4%;
+  background:
+    radial-gradient(circle at 18% 14%, rgba(241,210,164,.13), transparent 28%),
+    linear-gradient(to top, rgba(3,2,2,.5), transparent 58%);
+  box-shadow: inset 0 0 100px rgba(3,2,2,.5);
+}
+.result-card__focus-filter::after {
+  content: none;
+}
+.result-card__focus-filter--primary {
+  --focus-image: url("assets/gallery/portfolio/work-01.jpg");
+  opacity: 1;
+}
+.result-card__focus-filter--secondary {
+  --focus-image: url("assets/gallery/portfolio/work-01.jpg");
+}
+.result-card.is-secondary .result-card__focus-filter--primary { opacity: 0; }
+.result-card.is-secondary .result-card__focus-filter--secondary { opacity: 1; }
+
+.result-card--brows-natural .result-card__focus-filter--primary {
+  --focus-x: 55%;
+  --focus-y: 39%;
+  --focus-w: 52%;
+  --focus-h: 19%;
+}
+.result-card--brows-natural .result-card__focus-filter--secondary {
+  --focus-x: 54%;
+  --focus-y: 38%;
+  --focus-w: 56%;
+  --focus-h: 20%;
+}
+.result-card--lip .result-card__focus-filter--primary {
+  --focus-image: url("assets/gallery/portfolio/work-20.jpg");
+  --focus-x: 52%;
+  --focus-y: 51%;
+  --focus-w: 72%;
+  --focus-h: 32%;
+}
+.result-card--lip .result-card__focus-filter--secondary {
+  --focus-image: url("assets/gallery/portfolio/work-21.jpg");
+  --focus-x: 58%;
+  --focus-y: 57%;
+  --focus-w: 56%;
+  --focus-h: 33%;
+}
+.result-card--hair-stroke .result-card__focus-filter--primary {
+  --focus-image: url("assets/gallery/portfolio/work-14.jpg");
+  --focus-x: 62%;
+  --focus-y: 43%;
+  --focus-w: 53%;
+  --focus-h: 23%;
+}
+.result-card--hair-stroke .result-card__focus-filter--secondary {
+  --focus-image: url("assets/gallery/portfolio/work-15.jpg");
+  --focus-x: 51%;
+  --focus-y: 39%;
+  --focus-w: 75%;
+  --focus-h: 24%;
+}
+.result-card--nano .result-card__focus-filter--primary {
+  --focus-image: url("assets/gallery/portfolio/work-16.jpg");
+  --focus-x: 62%;
+  --focus-y: 33%;
+  --focus-w: 56%;
+  --focus-h: 22%;
+}
+.result-card--nano .result-card__focus-filter--secondary {
+  --focus-image: url("assets/gallery/portfolio/work-17.jpg");
+  --focus-x: 53%;
+  --focus-y: 36%;
+  --focus-w: 76%;
+  --focus-h: 25%;
+}
+.result-card__light {
+  position: absolute;
+  z-index: 6;
+  inset: 0;
+  opacity: 0;
+  pointer-events: none;
+  background: radial-gradient(circle 220px at var(--mx) var(--my), rgba(255,226,183,.24), transparent 66%);
+  mix-blend-mode: soft-light;
+  transition: opacity .25s ease;
+}
+.result-card:hover .result-card__light,
+.result-card.is-dragging .result-card__light { opacity: 1; }
 .result-card__hint {
   position: absolute;
   z-index: 8;
@@ -594,20 +715,14 @@ button, input, textarea, select { font: inherit; }
 .result-card__meta {
   position: absolute;
   z-index: 10;
-  right: 10px;
-  left: 10px;
-  bottom: 10px;
-  min-height: 62px;
+  right: 22px;
+  left: 18px;
+  bottom: 20px;
   display: grid;
   grid-template-columns: auto 1fr auto;
-  align-items: center;
-  gap: 12px;
-  padding: 9px 12px;
-  border: 1px solid rgba(241,210,164,.13);
-  border-radius: 18px;
-  background: linear-gradient(110deg, rgba(216,172,114,.1), rgba(31,22,17,.98) 48%, #15100e);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.035);
-  transform: translateZ(18px);
+  align-items: end;
+  gap: 13px;
+  transform: translateZ(42px);
   pointer-events: none;
 }
 .result-card__number {
@@ -623,14 +738,15 @@ button, input, textarea, select { font: inherit; }
   width: 44px;
   height: 44px;
   padding: 0;
-  border: 1px solid rgba(241,210,164,.24);
+  border: 1px solid rgba(255,255,255,.2);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 3px;
   color: var(--cream);
-  background: #17110e;
+  background: rgba(12,9,8,.48);
+  backdrop-filter: blur(10px);
   cursor: pointer;
   pointer-events: auto;
   transition: transform .3s ease, color .3s ease, background .3s ease, border-color .3s ease;
@@ -837,8 +953,8 @@ button, input, textarea, select { font: inherit; }
     opacity: .82;
     transform: none;
   }
-  .result-card__media { inset: 9px 9px 78px; border-radius: 17px; }
-  .result-card__meta { right: 9px; left: 9px; min-height: 60px; padding: 8px 10px; }
+  .result-card__focus-filter { filter: blur(7px) saturate(.7) sepia(.2) brightness(.62) contrast(1.06); }
+  .result-card__meta { right: 18px; left: 14px; }
   .about-image { height: 480px; }
   .form-row, .contact-mini { grid-template-columns: 1fr; }
   .footer-bottom { grid-template-columns: 1fr; gap: 14px; justify-items: center; text-align: center; }
