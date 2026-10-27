@@ -76,9 +76,10 @@
 }
 
 .lena-analytics-settings {
-  position: fixed;
-  left: 16px;
-  bottom: 16px;
+  position: static;
+  display: flex;
+  width: max-content;
+  margin: 20px auto 0;
   color: #e8dccb;
   background: rgba(24, 23, 21, .92);
 }

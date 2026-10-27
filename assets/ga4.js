@@ -144,7 +144,7 @@
   function buildConsentUi() {
     const stylesheet = document.createElement("link");
     stylesheet.rel = "stylesheet";
-    stylesheet.href = "/assets/ga4.css";
+    stylesheet.href = "/assets/ga4.css?v=20261027-home-ux-01";
     document.head.append(stylesheet);
 
     const settingsButton = document.createElement("button");
@@ -159,7 +159,9 @@
     panel.setAttribute("aria-label", consentCopy.region);
     panel.innerHTML = `<div class="lena-analytics-copy"><strong>${consentCopy.title}</strong><p>${consentCopy.description}</p></div><div class="lena-analytics-actions"><button type="button" data-analytics-choice="granted">${consentCopy.accept}</button><button type="button" data-analytics-choice="denied">${consentCopy.decline}</button></div>`;
     panel.hidden = true;
-    document.body.append(settingsButton, panel);
+    const settingsHost = document.querySelector(".site-footer, footer") || document.body;
+    settingsHost.append(settingsButton);
+    document.body.append(panel);
 
     function showPanel(moveFocus = true) {
       panel.hidden = false;
