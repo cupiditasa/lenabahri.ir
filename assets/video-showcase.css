@@ -102,7 +102,7 @@
 @media (max-width: 620px) {
   .video-site-header { width: calc(100% - 32px); gap: 12px; justify-content: space-between; }
   .video-site-brand img { width: 36px; height: 36px; }
-  .video-site-header nav { justify-content: flex-start; overflow-x: auto; flex-wrap: nowrap; padding: 6px 0 2px; }
+  .video-site-header nav { justify-content: center; overflow: visible; flex-wrap: wrap; gap: 10px 16px; padding: 6px 0 2px; }
   .video-site-header nav a { white-space: nowrap; font-size: 11px; }
   .video-header-cta { padding: 9px 12px; font-size: 11px; }
   .video-page-shell,.video-watch-shell { width: calc(100% - 32px); }
