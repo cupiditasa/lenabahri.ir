@@ -412,13 +412,13 @@ button, input, textarea, select { font: inherit; }
 .instagram-link { font: 14px Georgia, serif; color: var(--gold-light); border-bottom: 1px solid rgba(216,172,114,.4); padding-bottom: 6px; direction: ltr; }
 .portfolio-grid {
   display: grid;
-  grid-template-columns: 1.25fr .75fr .75fr 1.25fr;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: clamp(14px, 1.4vw, 24px);
   perspective: 1400px;
 }
 .result-card {
   position: relative;
-  height: clamp(430px, 39vw, 570px);
+  height: clamp(360px, 30vw, 480px);
   min-width: 0;
   z-index: 1;
   user-select: none;
@@ -448,6 +448,7 @@ button, input, textarea, select { font: inherit; }
   min-height: 0;
   overflow: hidden;
   background: #17110e;
+  cursor: pointer;
 }
 .result-card__image {
   position: absolute;
@@ -459,6 +460,41 @@ button, input, textarea, select { font: inherit; }
   transition: transform .7s cubic-bezier(.2,.7,.2,1);
 }
 .result-card:hover .result-card__image { transform: scale(1.035); }
+.result-card__media:focus-visible { outline: 2px solid var(--gold-light); outline-offset: -4px; }
+.result-card__type {
+  position: absolute;
+  z-index: 2;
+  top: 14px;
+  left: 14px;
+  min-height: 28px;
+  padding: 5px 10px;
+  border: 1px solid rgba(241,210,164,.38);
+  border-radius: 999px;
+  color: var(--cream);
+  background: rgba(15,10,8,.7);
+  backdrop-filter: blur(10px);
+  font-size: 10px;
+}
+.result-card__play,
+.mix-card__play {
+  position: absolute;
+  z-index: 2;
+  top: 50%;
+  left: 50%;
+  width: 58px;
+  height: 58px;
+  display: grid;
+  place-items: center;
+  padding-left: 3px;
+  border: 1px solid rgba(255,255,255,.72);
+  border-radius: 50%;
+  color: var(--cream);
+  background: rgba(20,13,10,.44);
+  backdrop-filter: blur(8px);
+  font-size: 17px;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
 .result-card__meta {
   position: relative;
   z-index: 10;
@@ -510,9 +546,9 @@ button, input, textarea, select { font: inherit; }
 .result-card__menu {
   position: absolute;
   z-index: 20;
-  right: 18px;
-  bottom: 76px;
-  width: min(230px, calc(100% - 36px));
+  top: 43%;
+  right: 50%;
+  width: min(240px, calc(100% - 30px));
   padding: 7px;
   border: 1px solid rgba(241,210,164,.24);
   border-radius: 16px;
@@ -522,17 +558,17 @@ button, input, textarea, select { font: inherit; }
   backdrop-filter: blur(22px);
   opacity: 0;
   visibility: hidden;
-  transform: translate3d(0,12px,55px) scale(.96);
-  transform-origin: right bottom;
+  transform: translate3d(50%,calc(-50% + 12px),55px) scale(.96);
+  transform-origin: center;
   transition: opacity .24s ease, transform .24s ease, visibility .24s;
 }
 .result-card.is-menu-open .result-card__menu {
   opacity: 1;
   visibility: visible;
-  transform: translate3d(0,0,55px) scale(1);
+  transform: translate3d(50%,-50%,55px) scale(1);
 }
 .result-card__menu a {
-  min-height: 42px;
+  min-height: 48px;
   padding: 9px 11px;
   border-radius: 11px;
   display: flex;
@@ -633,7 +669,7 @@ button, input, textarea, select { font: inherit; }
   .services-grid { grid-template-columns: repeat(2, 1fr); }
   .service-card:nth-child(even) { margin-top: 0; }
   .portfolio-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .result-card { height: 460px; }
+  .result-card { height: 410px; }
   .main-nav { gap: 20px; }
   .hero-awards { gap: 18px; }
 }
@@ -686,9 +722,17 @@ button, input, textarea, select { font: inherit; }
   .hero-actions { align-items: flex-start; flex-direction: column; gap: 12px; }
   .services-grid { grid-template-columns: 1fr; }
   .service-card { height: 440px; }
-  .portfolio-grid { grid-template-columns: 1fr; gap: 22px; }
-  .result-card { height: min(118vw, 480px); }
-  .result-card__meta { padding: 14px 18px; }
+  .portfolio-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .result-card { height: clamp(290px, 82vw, 370px); }
+  .result-card__meta { min-height: 74px; padding: 11px 12px; gap: 8px; }
+  .result-card__meta h3 { font-size: clamp(13px, 3.6vw, 17px); }
+  .result-card__meta small { font-size: 7px; }
+  .result-card__number { font-size: 8px; }
+  .result-card__trigger { width: 44px; height: 44px; }
+  .result-card__type { top: 9px; left: 9px; min-height: 26px; padding: 4px 8px; font-size: 9px; }
+  .result-card__play { width: 48px; height: 48px; }
+  .result-card__menu { width: calc(100% - 20px); padding: 5px; }
+  .result-card__menu a { min-height: 46px; padding: 8px; font-size: 10px; }
   .about-image { height: 480px; }
   .form-row, .contact-mini { grid-template-columns: 1fr; }
   .footer-bottom { grid-template-columns: 1fr; gap: 14px; justify-items: center; text-align: center; }

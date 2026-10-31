@@ -326,10 +326,13 @@
   photoViewerMedia?.addEventListener("pointerup", endPhotoViewerSwipe);
   photoViewerMedia?.addEventListener("pointercancel", endPhotoViewerSwipe);
 
-  function openProject(id) {
+  function openProject(id, syncHash = true) {
     if (!modal) return;
     const project = data.projects.find((item) => item.id === id);
     if (!project) return;
+    if (syncHash && window.location.hash !== `#project-${id}`) {
+      window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}#project-${id}`);
+    }
     modal.querySelector("#modalImageMain").src = project.image;
     const detailImage = modal.querySelector("#modalImageDetail");
     const detailShot = detailImage.closest(".modal-shot");
@@ -357,6 +360,9 @@
     modal.classList.remove("open");
     modal.setAttribute("aria-hidden", "true");
     body.style.overflow = "";
+    if (/^#project-\d+$/.test(window.location.hash)) {
+      window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}`);
+    }
   }
 
   modal?.querySelector(".modal-close")?.addEventListener("click", closeModal);
@@ -627,4 +633,6 @@
 
   renderRail();
   renderArchive();
+  const projectHash = window.location.hash.match(/^#project-(\d+)$/);
+  if (projectHash) openProject(Number(projectHash[1]), false);
 })();

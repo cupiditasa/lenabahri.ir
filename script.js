@@ -273,30 +273,45 @@ function closeResultMenus(exceptCard) {
     if (card === exceptCard) return;
     card.classList.remove("is-menu-open");
     const trigger = card.querySelector(".result-card__trigger");
+    const media = card.querySelector("[data-result-media]");
     const menu = card.querySelector(".result-card__menu");
     if (trigger) trigger.setAttribute("aria-expanded", "false");
+    if (media) media.setAttribute("aria-expanded", "false");
     if (menu) menu.setAttribute("aria-hidden", "true");
   });
 }
 
 resultCards.forEach((card) => {
   const trigger = card.querySelector(".result-card__trigger");
+  const media = card.querySelector("[data-result-media]");
   const menu = card.querySelector(".result-card__menu");
 
   const toggleResultMenu = () => {
     const willOpen = !card.classList.contains("is-menu-open");
     closeResultMenus(willOpen ? card : null);
     card.classList.toggle("is-menu-open", willOpen);
-    trigger.setAttribute("aria-expanded", String(willOpen));
-    menu.setAttribute("aria-hidden", String(!willOpen));
+    trigger?.setAttribute("aria-expanded", String(willOpen));
+    media?.setAttribute("aria-expanded", String(willOpen));
+    menu?.setAttribute("aria-hidden", String(!willOpen));
   };
 
-  trigger.addEventListener("click", (event) => {
+  trigger?.addEventListener("click", (event) => {
     event.stopPropagation();
     toggleResultMenu();
   });
 
-  menu.addEventListener("click", () => closeResultMenus());
+  media?.addEventListener("click", (event) => {
+    event.stopPropagation();
+    toggleResultMenu();
+  });
+
+  media?.addEventListener("keydown", (event) => {
+    if (event.key !== "Enter" && event.key !== " ") return;
+    event.preventDefault();
+    toggleResultMenu();
+  });
+
+  menu?.addEventListener("click", () => closeResultMenus());
 });
 
 document.addEventListener("click", (event) => {
